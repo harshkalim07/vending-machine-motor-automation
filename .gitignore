@@ -1,0 +1,36 @@
+# Python cache & environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+# Local config with device IP & private notification topic
+config.json
+OPERATOR_GUIDE.md
+
+# Android Platform-Tools binaries (install via setup_adb.ps1)
+platform-tools/
+*.exe
+*.dll
+*.zip
+
+# Captured screenshots, UI XML dumps & logs
+*.png
+*.jpg
+*.jpeg
+*.mp4
+*.xml
+test_report.json
+test_report.md
+manual_test_recording.json
+
+# Scratch / internal network investigation scripts
+check_*.py
+check_*.bat
+scan_*.py
+scan_*.bat
+capture_diagnostics.*
+dump_current_screen.py
+record_manual_test.py
+record_test.bat
