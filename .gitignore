@@ -5,32 +5,25 @@ __pycache__/
 .venv/
 venv/
 
-# Local config with device IP & private notification topic
+# Local config & runbook (keeps your private device IP safe)
 config.json
 OPERATOR_GUIDE.md
 
-# Android Platform-Tools binaries (install via setup_adb.ps1)
+# Android Platform-Tools binaries
 platform-tools/
 *.exe
 *.dll
 *.zip
 
 # Captured screenshots, UI XML dumps & logs
+dumps/
+logs/
 *.png
 *.jpg
 *.jpeg
 *.mp4
 *.xml
-test_report.json
-test_report.md
-manual_test_recording.json
+*.jsonl
 
-# Scratch / internal network investigation scripts
-check_*.py
-check_*.bat
-scan_*.py
-scan_*.bat
-capture_diagnostics.*
-dump_current_screen.py
-record_manual_test.py
-record_test.bat
+# Scratch investigation tools
+tools/

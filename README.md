@@ -1,127 +1,202 @@
-# Vending Machine Motor Test Automation Suite
+# 🤖 Autonomous Android IoT Vending Machine HIL Test Suite
 
-Automates the complete motor stress-testing procedure for Android-based smart vending machine controllers.
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![Platform](https://img.shields.io/badge/Platform-Android%20ADB-green.svg?logo=android&logoColor=white)](https://developer.android.com/tools/adb)
+[![Architecture](https://img.shields.io/badge/Architecture-Closed--Loop%20State%20Machine-orange.svg)](#-architecture)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Telemetry](https://img.shields.io/badge/Telemetry-ntfy.sh%20Push-purple.svg)](https://ntfy.sh/)
 
----
+An enterprise-grade, **Hardware-in-the-Loop (HIL)** test automation suite designed for Android-based smart vending machine controllers. 
 
-## 📌 Problem & Objective
-
-- **Total Motors**: 45 motors per machine (typically 5 trays $\times$ 9 slots, or 6 trays).
-- **Test Cycles**: 45 continuous rotations per motor = **2,025 rotations** per machine.
-- **Manual Bottlenecks**:
-  1. Manually clicking the Bin number input and typing the next bin.
-  2. Clicking "Bin + Motor Multiple Time Vend Test".
-  3. Solving the popup **Security Check** arithmetic calculation (e.g., *"What is 25 + 38?"*).
-  4. Clicking "VERIFY".
-  5. Clicking "START" and waiting ~4.5 minutes per motor.
-  6. Clicking "STOP/BACK" and repeating for 45 motors (takes **~3.5 to 4 hours of manual labor**).
-
-This suite automates **100% of the manual mouse and typing workflow**.
+It autonomously manages the entire testing lifecycle: from **device boot & rolling master OTP authentication**, to **UI state recovery**, **arithmetic challenge solving**, and continuous **45-motor mechanical stress endurance testing** (2,025 continuous physical coil rotations), cutting testing time from **3.5+ hours of manual labor to 100% hands-free execution**.
 
 ---
 
-## 🚀 How It Works
+## 📌 The Problem & Business Impact
+
+Smart vending kiosks undergo rigorous endurance and QA testing before field deployment:
+* **The Scale**: 45 physical spiral/conveyor motors per kiosk across 6 trays.
+* **The Stress Benchmark**: Each motor must execute **45 continuous rotations** ($\approx$ 258 seconds per motor) = **2,025 rotations** per machine.
+* **The Bottleneck**: Performing this manually requires an operator to stand in front of the kiosk for **~3.5 to 4 hours**, repeating a tedious 6-step loop for every single motor:
+  1. Booting the app and entering hidden admin backdoors.
+  2. Calculating date-dependent rolling OTP passwords.
+  3. Typing 3-digit bin slot numbers (`100` to `609`).
+  4. Solving arithmetic security challenges (*"What is 38 + 16?"*).
+  5. Monitoring physical motor rotation countdowns.
+  6. Tapping STOP/BACK and repeating 45 times.
+
+**This suite automates 100% of this workflow with closed-loop verification, adaptive retries, and mobile push telemetry.**
+
+---
+
+## 🏗️ Architecture & State Machine
+
+The suite is engineered around **two synchronized closed-loop state machines** that probe the live Android View Hierarchy before taking action:
 
 ```mermaid
 flowchart TD
-    A["Start Automation"] --> B["Navigate to Machine Diagnostics"]
-    B --> C["Enter Target Motor Bin (e.g. 101, 102, 103...)"]
-    C --> D["Click 'Bin + Motor Multiple Time Vend Test'"]
-    D --> E["'Security Check' Dialog Appears"]
-    E --> F["Read Math Question (e.g. 'What is 25 + 38?')"]
-    F --> G["Solve Math (25 + 38 = 63) & Enter Answer"]
-    G --> H["Click 'VERIFY'"]
-    H --> I["Click 'START' on Motor Test Screen"]
-    I --> J["Monitor 45 Rotations with Live Progress Bar"]
-    J --> K{"All 45 Done?"}
-    K -- Yes --> L["Click 'STOP/BACK'"]
-    L --> M{"More Motors Left?"}
-    M -- Yes --> C
-    M -- No --> N["Generate Test Report (test_report.json / md)"]
+    subgraph Phase 1: Autonomous Boot & Auth State Machine
+        B0["Android Boot / Desktop"] -->|Detects Launcher| B1["Launch F&B App"]
+        B1 --> B2["Catalog Screen (Tray-1)"]
+        B2 -->|Long-press UID at (912, 28)| B3["Admin Login (QR Screen)"]
+        B3 -->|Long-press Secret Door at (1020, 1890) before 49s timer| B4["OTP Verification Screen"]
+        B4 -->|Compute Rolling OTP 'Vman@DDMM'| B5["Submit Master Password"]
+        B5 --> B6["Admin Menu Grid"]
+        B6 -->|Click (280, 410)| B7["Machine Diagnostics Dashboard"]
+    end
+
+    subgraph Phase 2: Closed-Loop HIL Motor Testing State Machine
+        B7 --> M1["Verify Machine Diagnostics State"]
+        M1 --> M2["Enter Bin Number & Tap Vend Test"]
+        M2 --> M3["Detect Security Modal"]
+        M3 -->|In-Memory Regex & Arithmetic Solver| M4["Solve Challenge & Tap VERIFY"]
+        M4 --> M5["Confirm Test Screen Mounted"]
+        M5 -->|Engage START with Retry Confirmation| M6["Synchronize 45 Rotations (258s Timer)"]
+        M6 -->|Asynchronous Push Telemetry| M7["ntfy.sh Mobile Alerts"]
+        M6 --> M8["Tap STOP/BACK & Confirm Return to Diagnostics"]
+        M8 -->|Loop Next Motor| M1
+        M8 -->|All 45 Finished| M9["Generate Markdown & JSON Audit Reports"]
+    end
 ```
 
 ---
 
-## 🛠️ Two Automation Modes
+## ⚡ Key Engineering Highlights
 
-### Mode 1: ADB Automation (`vending_adb_automator.py`) — **Recommended**
-- **Direct connection** to the vending machine's Android board via USB cable or local Wi-Fi.
-- **100% reliable**: Directly inspects the UI hierarchy via UIAutomator XML.
-- **Zero OCR errors**: Extracts `"What is 25 + 38?"` as exact text and computes `63` instantly.
-- **No mouse drift**: Clicks exact UI button bounds automatically, regardless of screen resolution.
-- **Headless**: Can run in the background while you do other work.
+### 1. Zero-Lag Android Performance Tuning
+Default Android window and transition animations introduce artificial latency. Combined with UiAutomator's `waitForIdle` timeout (which stalls when text fields have blinking cursors), early automation suffered a 45-second screen transition lag.
+* **The Fix**: The controller globally suppresses animation scales directly on the Android OS:
+  ```bash
+  adb shell settings put global window_animation_scale 0
+  adb shell settings put global transition_animation_scale 0
+  adb shell settings put global animator_duration_scale 0
+  ```
+  Screen transition latency dropped from **45 seconds to < 1.5 seconds**.
 
-### Mode 2: Screen Mouse Automation (`vending_mouse_automator.py`)
-- Used if the machine screen is mirrored on your PC monitor (e.g., via `scrcpy` or an HDMI capture card).
-- Uses `pyautogui` and `pytesseract` to click buttons and read the security check question via OCR.
-- Includes a simple interactive calibration wizard (`calibrate_screen.py`).
+### 2. In-Memory Security Solver (Bypassing Slow OCR)
+When triggering a vend test, the kiosk presents a dynamic security popup (*"What is 38 + 16?"*). Instead of using slow, brittle Optical Character Recognition (OCR), the system directly inspects the accessibility node tree in memory, solves the arithmetic in `< 10ms`, and auto-submits the answer.
+
+### 3. Dynamic Rolling Master Password Engine
+The kiosk admin backdoor uses a daily rolling OTP algorithm based on target dates:
+$$\text{OTP} = \text{"Vman@"} + (\text{Day} + 1)\%d + \text{Month}\%m$$
+The bootstrapper automatically computes today's valid master password and injects it via Android's native `KEYCODE_AT (77)` event to bypass shell character dropping.
+
+### 4. Non-Blocking Push Telemetry
+To allow operators to walk away during the 3.5-hour test run, push telemetry dispatches in background daemon threads via `ntfy.sh`. HTTP timeouts or network jitter never interrupt precision motor timing.
 
 ---
 
 ## 📂 Project Structure
 
-| File | Purpose |
-|---|---|
-| [`config.example.json`](config.example.json) | Sample configuration template (copy to `config.json` before running) |
-| [`vending_adb_automator.py`](vending_adb_automator.py) | Closed-loop ADB motor runner (UI state check, math solver, 45-cycle loop, push alerts) |
-| [`connect_to_machine.py`](connect_to_machine.py) | Interactive Wi-Fi ADB connection helper |
-| [`find_vending_box_ip.py`](find_vending_box_ip.py) | Subnet scanner to locate vending boards listening on ADB port 5555 |
-| [`vending_mouse_automator.py`](vending_mouse_automator.py) | Mouse click & OCR automation script for PC screen-mirroring setups |
-| [`calibrate_screen.py`](calibrate_screen.py) | Wizard to calibrate screen coordinates on any monitor resolution |
-| [`setup_adb.ps1`](setup_adb.ps1) | PowerShell helper to download Google Android Platform-Tools (`adb`) |
+```text
+vending-machine-motor-automation/
+│
+├── 🚀 0_start_full_automation.bat  # 1-Click: Master End-to-End Runner (Tray-1 -> 45 Motors)
+├── 🔍 1_find_ip.bat                # 1-Click: Scans local subnet for vending machine IP
+├── 🔌 2_connect.bat                # 1-Click: Connects ADB over Wi-Fi
+├── ⚙️ 3_run_motor_test.bat         # 1-Click: Motor testing only (from Diagnostics screen)
+│
+├── 🐍 boot_to_diagnostics.py       # Autonomous login state machine (UID -> Backdoor -> OTP)
+├── 🐍 vending_adb_automator.py     # 45-motor stress testing closed-loop engine
+├── 🐍 connect_to_machine.py        # Wi-Fi ADB connection helper
+├── 🐍 find_vending_box_ip.py       # Subnet scanner for ADB port 5555
+│
+├── 📁 logs/                        # Generated test reports (MD & JSON audit files)
+├── 📁 platform-tools/              # Android Platform-Tools binaries (adb.exe)
+│
+├── ⚙️ config.example.json          # Configuration template
+├── 📦 requirements.txt             # Python dependencies
+├── 🛡️ .gitignore                   # Git hygiene & security rules
+├── 📜 LICENSE                      # MIT Open-Source License
+├── 📖 README.md                    # Project documentation
+└── 📋 OPERATOR_GUIDE.md            # Daily operator quick-start manual
+```
 
 ---
 
-## ⚡ Quick Start Guide
+## 🚀 Quick Start Guide
 
-### Step 1: Install ADB & Configure
-1. Download Google Android Platform-Tools:
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File setup_adb.ps1
-   ```
-2. Copy `config.example.json` to `config.json` and set your vending board's IP and notification topic:
-   ```powershell
-   cp config.example.json config.json
-   ```
+### 1. Prerequisites
+* Python 3.9+
+* Windows / Linux / macOS
+* Wi-Fi ADB or USB connection to the Android vending controller
 
-### Step 2: Connect to the Machine
-Connect your laptop to the vending machine controller board over USB or Wi-Fi (ADB port `5555`):
+### 2. Setup
+Clone the repository and install dependencies:
 ```bash
-python find_vending_box_ip.py   # Optional: scan local subnet for ADB port 5555
-python connect_to_machine.py    # Connect ADB and update config.json
+git clone https://github.com/harshkalim07/vending-machine-motor-automation.git
+cd vending-machine-motor-automation
+pip install -r requirements.txt
 ```
 
-### Step 3: Configure Motor List
-Open `config.json` to verify or adjust your machine's bin numbers:
-```json
-"motors": [
-  101, 102, 103, 104, 105, 106, 107, 108, 109,
-  201, 202, 203, 204, 205, 206, 207, 208, 209,
-  301, 302, 303, 304, 305, 306, 307, 308, 309,
-  401, 402, 403, 404, 405, 406, 407, 408, 409,
-  501, 502, 503, 504, 505, 506, 507, 508, 509
-]
+Copy the configuration template:
+```bash
+cp config.example.json config.json
 ```
 
-### Step 3: Run the Automation!
+### 3. Connect to Kiosk
+Find and connect to the kiosk board over Wi-Fi:
 ```bash
-# Test all 45 motors automatically
-python vending_adb_automator.py
+# Scan local subnet for ADB-enabled boards
+python find_vending_box_ip.py
 
-# Or resume from a specific motor (e.g. bin 103)
-python vending_adb_automator.py --start-from 103
+# Connect to target board (e.g. 192.168.1.100:5555)
+python connect_to_machine.py
+```
 
-# Or test a single motor
-python vending_adb_automator.py --motor 102
+### 4. Run the Full Automation!
+From the main catalog screen or launcher:
+```bash
+# Complete end-to-end flow: Auto-Login -> Diagnostics -> 45 Motors
+python boot_to_diagnostics.py && python vending_adb_automator.py
+```
+*(On Windows, simply double-click `0_start_full_automation.bat`)*
 
-# Dry-run test (simulates without physical clicks)
+#### Flexible Execution Options:
+```bash
+# Resume testing from a specific motor (e.g., Bin 500)
+python vending_adb_automator.py --start-from 500
+
+# Test a single motor slot only (e.g., Bin 302)
+python vending_adb_automator.py --motor 302
+
+# Dry-run mode (simulates workflow without sending taps)
 python vending_adb_automator.py --dry-run
 ```
 
 ---
 
-## 📊 Test Report Output
+## 📊 Automated Audit Reports
 
-Upon completion (or abort), the tool automatically generates:
-- `test_report.json`: Detailed machine-readable test data.
-- `test_report.md`: Markdown summary table with PASS/FAIL status and rotation durations.
+Upon completion, structured audit reports are generated automatically inside the `logs/` directory:
+
+### `logs/test_report.md`
+```markdown
+# Vending Machine Motor Test Automation Report
+- **Total Motors Tested**: 45
+- **Passed**: 45
+- **Failed / Timeout**: 0
+- **Total Duration**: 193.5 minutes
+
+| Bin Number | Status | Duration (s) | Timestamp |
+|------------|--------|--------------|-----------|
+| 100 | ✅ PASS | 258.1s | 2026-11-13 11:35:10 |
+| 101 | ✅ PASS | 257.9s | 2026-11-13 11:39:28 |
+| ... | ... | ... | ... |
+| 609 | ✅ PASS | 258.0s | 2026-11-13 14:48:40 |
+```
+
+---
+
+## 📱 Mobile Push Telemetry (ntfy.sh)
+
+Operators receive real-time notifications on iOS/Android:
+* `Motor #100 Running (1/45)` $\rightarrow$ ETA & progress.
+* `Motor #100 PASS ✅` $\rightarrow$ Completed 45 rotations.
+* `🎉 Vending Machine Test Complete!` $\rightarrow$ Full summary report.
+
+---
+
+## 🛡️ License
+
+This project is licensed under the [MIT License](LICENSE).

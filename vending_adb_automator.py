@@ -475,7 +475,8 @@ class SmartVendingTester:
             priority="high"
         )
 
-        out_dir = os.path.dirname(os.path.abspath(self.config_path))
+        root_dir = os.path.dirname(os.path.abspath(self.config_path))
+        out_dir = os.path.join(root_dir, "logs") if os.path.exists(os.path.join(root_dir, "logs")) else root_dir
         json_file = os.path.join(out_dir, "test_report.json")
         md_file = os.path.join(out_dir, "test_report.md")
 
