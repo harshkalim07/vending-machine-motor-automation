@@ -3,12 +3,15 @@
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Android%20ADB-green.svg?logo=android&logoColor=white)](https://developer.android.com/tools/adb)
 [![Architecture](https://img.shields.io/badge/Architecture-Closed--Loop%20State%20Machine-orange.svg)](#-architecture)
+[![Engineered For](https://img.shields.io/badge/Engineered%20for-Vendiman%20Pvt%20Ltd-red.svg)](https://www.vendiman.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Telemetry](https://img.shields.io/badge/Telemetry-ntfy.sh%20Push-purple.svg)](https://ntfy.sh/)
 
+> 🏢 **Enterprise Case Study**: Designed and engineered by **Harsh Kalim** during the **Junior Executive – IT & Digital** role at **Vendiman Private Limited** (Mumbai, India) to automate physical IoT spiral motor QA and mechanical endurance stress testing on smart vending kiosks.
+
 An enterprise-grade, **Hardware-in-the-Loop (HIL)** test automation suite designed for Android-based smart vending machine controllers. 
 
-It autonomously manages the entire testing lifecycle: from **device boot & rolling master OTP authentication**, to **UI state recovery**, **arithmetic challenge solving**, and continuous **45-motor mechanical stress endurance testing** (2,025 continuous physical coil rotations), cutting testing time from **3.5+ hours of manual labor to 100% hands-free execution**.
+It autonomously manages the entire testing lifecycle: from **device boot & rolling master OTP authentication**, to **UI state recovery**, **arithmetic challenge solving**, **automated Red Cross jam detection**, and continuous **45-motor mechanical stress endurance testing** (2,025 continuous physical coil rotations), cutting testing time from **3.5+ hours of manual labor to 100% hands-free execution**.
 
 ---
 
@@ -83,6 +86,12 @@ The bootstrapper automatically computes today's valid master password and inject
 
 ### 4. Non-Blocking Push Telemetry
 To allow operators to walk away during the 3.5-hour test run, push telemetry dispatches in background daemon threads via `ntfy.sh`. HTTP timeouts or network jitter never interrupt precision motor timing.
+
+### 5. Automated Motor Jam & "Red Cross" Fault Detection
+During spiral rotation testing, mechanical friction or motor stalls cause the kiosk UI to display a **Red Cross mark** on that rotation box instead of a Green Checkmark:
+* **Live Visual Matrix Analysis**: Periodically scans the RGB pixel data of all 45 rotation boxes ($R > 180, G < 70, B < 70$).
+* **Instant Incident Telemetry**: When a Red Cross is detected, it logs the exact rotation index (e.g. `Rotation #17`), prints an in-terminal alert, and fires an **urgent mobile push notification** via `ntfy.sh`.
+* **Permanent Audit Trail**: Test reports record the incident as `❌ FAIL (Red Cross on Rot #[17])` so maintenance teams know exactly which slot and rotation stalled.
 
 ---
 

@@ -328,13 +328,46 @@ class SmartVendingTester:
 
         print("  [State Warning] Max START taps reached, continuing with test monitoring...")
 
+    def check_for_red_crosses(self, bin_number):
+        """Inspects all 45 rotation boxes to detect any Red Cross (motor fault/jam)"""
+        if self.dry_run:
+            return []
+        try:
+            from PIL import Image
+            # Fast screencap
+            temp_png = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs", "temp_check.png")
+            os.makedirs(os.path.dirname(temp_png), exist_ok=True)
+            self.adb.run_cmd(["shell", "screencap -p /data/local/tmp/temp_check.png"])
+            self.adb.run_cmd(["pull", "/data/local/tmp/temp_check.png", temp_png])
+            if not os.path.exists(temp_png):
+                return []
+
+            img = Image.open(temp_png).convert("RGB")
+            failed_boxes = []
+            for i in range(45):
+                c = i % 5
+                r = i // 5
+                x1 = 74 + c * 216
+                y1 = 110 + r * 154
+                box = img.crop((x1, y1, x1 + 67, y1 + 67))
+                colors = box.getcolors(maxcolors=5000) or []
+                red_count = sum(cnt for cnt, (red, green, blue) in colors if red > 180 and green < 70 and blue < 70)
+                if red_count > 150:
+                    failed_boxes.append(i + 1)
+            return failed_boxes
+        except Exception:
+            return []
+
     def monitor_rotations_smart(self, bin_number):
-        """Monitors the 45 rotations (258s target) with live console progress"""
+        """Monitors the 45 rotations (258s target) with live console progress and Red Cross fault detection"""
         timing = self.config.get("timing", {})
         total_sec = timing.get("total_test_seconds", 258)
 
         start_time = time.time()
         print(f"  [Testing] Motor {bin_number}: Running 45 rotations ({total_sec}s target)...")
+        
+        last_check_time = start_time
+        detected_fails = []
 
         while True:
             elapsed = time.time() - start_time
@@ -348,13 +381,38 @@ class SmartVendingTester:
 
             if self.dry_run:
                 time.sleep(2)
-                return True, elapsed
+                return True, elapsed, []
+
+            # Check for Red Crosses every 30 seconds
+            if elapsed > 15 and (time.time() - last_check_time >= 30):
+                last_check_time = time.time()
+                current_fails = self.check_for_red_crosses(bin_number)
+                if current_fails and current_fails != detected_fails:
+                    detected_fails = current_fails
+                    print(f"\n\n  🚨 [FAULT ALERT] Motor #{bin_number} shows Red Cross on Rotation(s): {detected_fails}!")
+                    self.notify(
+                        title=f"🚨 MOTOR JAM: Bin #{bin_number} (Rot #{detected_fails})",
+                        message=f"Red Cross mark detected on Motor #{bin_number} at Rotation #{detected_fails}!\nPlease inspect hardware.",
+                        priority="urgent",
+                        tags="rotating_light,x,warning"
+                    )
 
             if elapsed >= total_sec:
-                print(f"\n  [Success] Motor {bin_number} completed 45 rotations in {int(elapsed)}s!")
-                # Give hardware 2 seconds to release relay
-                time.sleep(2.0)
-                return True, elapsed
+                final_fails = self.check_for_red_crosses(bin_number)
+                if final_fails:
+                    print(f"\n\n  ❌ [FAILED] Motor #{bin_number} finished with Red Cross on Rotation(s): {final_fails}!")
+                    self.notify(
+                        title=f"🚨 MOTOR JAM: Bin #{bin_number} FAILED ❌",
+                        message=f"Motor #{bin_number} finished with Red Cross on Rotation(s) #{final_fails}!\nPlease check/replace motor.",
+                        priority="urgent",
+                        tags="rotating_light,x,warning"
+                    )
+                    time.sleep(2.0)
+                    return False, elapsed, final_fails
+                else:
+                    print(f"\n  [Success] Motor {bin_number} completed 45 rotations in {int(elapsed)}s with 100% Green Checks!")
+                    time.sleep(2.0)
+                    return True, elapsed, []
 
             time.sleep(1.0)
 
@@ -408,17 +466,22 @@ class SmartVendingTester:
         # 4. Wait for screen & Engage START with confirmation
         self.wait_and_start_test_smart()
 
-        # 5. Monitor 45 rotations
-        success, duration = self.monitor_rotations_smart(bin_number)
+        # 5. Monitor 45 rotations (with Red Cross fault detection)
+        success, duration, failed_rotations = self.monitor_rotations_smart(bin_number)
 
         # 6. Exit and confirm return to Diagnostics
         self.exit_test_screen_smart()
 
-        status_str = "PASS" if success else "FAIL"
+        if success:
+            status_str = "PASS"
+        else:
+            status_str = f"FAIL (Red Cross on Rot #{failed_rotations})" if failed_rotations else "FAIL"
+
         result = {
             "bin": bin_number,
             "status": status_str,
             "duration_seconds": round(duration, 1),
+            "failed_rotations": failed_rotations,
             "timestamp": datetime.now().isoformat()
         }
         self.test_results.append(result)
@@ -426,9 +489,10 @@ class SmartVendingTester:
         next_msg = f"Next up: Motor #{next_bin}" if next_bin else "All 45 motors finished!"
         icon = "white_check_mark" if success else "x"
         self.notify(
-            title=f"Motor #{bin_number} {status_str} ✅" if success else f"Motor #{bin_number} {status_str} ❌",
-            message=f"Completed 45 rotations in {round(duration, 1)}s\n{next_msg}",
-            tags=icon
+            title=f"Motor #{bin_number} PASS ✅" if success else f"Motor #{bin_number} FAIL ❌",
+            message=f"Result: {status_str}\nDuration: {round(duration, 1)}s\n{next_msg}",
+            tags=icon,
+            priority="default" if success else "high"
         )
 
         print(f"\n>>> Motor #{bin_number} Finished with Status: {result['status']} (Duration: {result['duration_seconds']}s)")
