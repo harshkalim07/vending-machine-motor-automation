@@ -38,27 +38,27 @@ The suite is engineered around **two synchronized closed-loop state machines** t
 
 ```mermaid
 flowchart TD
-    subgraph Phase 1: Autonomous Boot & Auth State Machine
+    subgraph Phase1["Phase 1: Autonomous Boot & Auth State Machine"]
         B0["Android Boot / Desktop"] -->|Detects Launcher| B1["Launch F&B App"]
-        B1 --> B2["Catalog Screen (Tray-1)"]
-        B2 -->|Long-press UID at (912, 28)| B3["Admin Login (QR Screen)"]
-        B3 -->|Long-press Secret Door at (1020, 1890) before 49s timer| B4["OTP Verification Screen"]
-        B4 -->|Compute Rolling OTP 'Vman@DDMM'| B5["Submit Master Password"]
+        B1 --> B2["Catalog Screen: Tray-1"]
+        B2 -->|Long-press UID| B3["Admin Login: QR Screen"]
+        B3 -->|Long-press Secret Backdoor| B4["OTP Verification Screen"]
+        B4 -->|Compute Rolling Master OTP| B5["Submit Password"]
         B5 --> B6["Admin Menu Grid"]
-        B6 -->|Click (280, 410)| B7["Machine Diagnostics Dashboard"]
+        B6 -->|Click Diagnostics| B7["Machine Diagnostics Dashboard"]
     end
 
-    subgraph Phase 2: Closed-Loop HIL Motor Testing State Machine
+    subgraph Phase2["Phase 2: Closed-Loop HIL Motor Testing State Machine"]
         B7 --> M1["Verify Machine Diagnostics State"]
         M1 --> M2["Enter Bin Number & Tap Vend Test"]
         M2 --> M3["Detect Security Modal"]
-        M3 -->|In-Memory Regex & Arithmetic Solver| M4["Solve Challenge & Tap VERIFY"]
+        M3 -->|In-Memory Math Solver| M4["Solve Challenge & Tap VERIFY"]
         M4 --> M5["Confirm Test Screen Mounted"]
-        M5 -->|Engage START with Retry Confirmation| M6["Synchronize 45 Rotations (258s Timer)"]
-        M6 -->|Asynchronous Push Telemetry| M7["ntfy.sh Mobile Alerts"]
-        M6 --> M8["Tap STOP/BACK & Confirm Return to Diagnostics"]
+        M5 -->|Confirmed Launch| M6["Synchronize 45 Rotations: 258s Timer"]
+        M6 -->|Push Telemetry| M7["ntfy.sh Mobile Alerts"]
+        M6 --> M8["Tap STOP/BACK & Confirm Return"]
         M8 -->|Loop Next Motor| M1
-        M8 -->|All 45 Finished| M9["Generate Markdown & JSON Audit Reports"]
+        M8 -->|All 45 Completed| M9["Generate Markdown & JSON Reports"]
     end
 ```
 
