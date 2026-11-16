@@ -68,7 +68,7 @@ class AutoBootDiagnostics:
         
         texts = [n.attrib.get("text", "") for n in root.iter("node")]
         res_ids = [n.attrib.get("resource-id", "") for n in root.iter("node")]
-        all_text = " ".join(texts).lower()
+        all_text = " ".join(" ".join(texts).split()).lower()
         all_ids = " ".join(res_ids).lower()
 
         # 1. Target screen: Machine Diagnostics (Motor testing dashboard)
@@ -76,9 +76,9 @@ class AutoBootDiagnostics:
             return "MACHINE_DIAGNOSTICS"
 
         # 2. Admin Menu Screen (Grid of 7 orange buttons)
-        if ("information settings" in all_text or 
-            "machine setup" in all_text or 
-            "password management" in all_text or 
+        if ("btnmachinediagnostics" in all_ids or "btnmachinesetup" in all_ids or
+            "btninformationsettings" in all_ids or "information settings" in all_text or 
+            "machine setup" in all_text or "password management" in all_text or 
             "advanced setting" in all_text or
             ("machine diagnostics" in all_text and "clean board" not in all_text)):
             return "ADMIN_MENU"
@@ -170,18 +170,18 @@ class AutoBootDiagnostics:
             elif state == "OTP_SCREEN":
                 print(f"  [Action] Entering OTP: '{otp}'...")
                 # Find OTP input field and LOGIN button
-                input_x, input_y = 540, 620
-                login_x, login_y = 540, 709
+                input_x, input_y = 540, 544
+                login_x, login_y = 540, 710
                 if root is not None:
                     for n in root.iter("node"):
-                        cls = n.attrib.get("class", "")
+                        cls = n.attrib.get("class", "").lower()
                         txt = n.attrib.get("text", "").upper()
                         rid = n.attrib.get("resource-id", "").lower()
                         m = re.search(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", n.attrib.get("bounds", ""))
                         if m:
                             cx = (int(m.group(1)) + int(m.group(3))) // 2
                             cy = (int(m.group(2)) + int(m.group(4))) // 2
-                            if "edittext" in cls.lower() or "enter otp" in txt.lower():
+                            if "edittext" in cls or "edtpassword" in rid or "enter otp" in txt.lower():
                                 input_x, input_y = cx, cy
                             if "LOGIN" in txt or "btn_login" in rid or "btnlogin" in rid or "btnsubmit" in rid:
                                 login_x, login_y = cx, cy
@@ -190,7 +190,7 @@ class AutoBootDiagnostics:
                 self.tap(input_x, input_y)
                 time.sleep(0.3)
                 # Clear existing text
-                clear_keys = " ".join(["67"] * 20)
+                clear_keys = " ".join(["67"] * 25)
                 self.run_cmd(["shell", f"input keyevent {clear_keys}"])
                 time.sleep(0.2)
 
@@ -210,18 +210,16 @@ class AutoBootDiagnostics:
                 # Tap LOGIN
                 print(f"  [Action] Tapping LOGIN at ({login_x}, {login_y})...")
                 self.tap(login_x, login_y)
-                time.sleep(1.8)
-                # Proactively click Machine Diagnostics in case Admin Menu already mounted
-                print("  [Action] Transitioning: Tapping 'Machine Diagnostics' button at (280, 410)...")
-                self.tap(280, 410)
-                time.sleep(1.0)
+                time.sleep(2.0)
 
             elif state == "ADMIN_MENU":
                 print("  [Action] On Admin Menu grid. Tapping 'Machine Diagnostics' (Row 2, Left)...")
-                diag_x, diag_y = 280, 410
+                diag_x, diag_y = 270, 365
                 if root is not None:
                     for n in root.iter("node"):
-                        if "machine diagnostics" in n.attrib.get("text", "").lower():
+                        rid = n.attrib.get("resource-id", "").lower()
+                        txt = " ".join(n.attrib.get("text", "").split()).lower()
+                        if "btnmachinediagnostics" in rid or "machine diagnostics" in txt:
                             m = re.search(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", n.attrib.get("bounds", ""))
                             if m:
                                 diag_x = (int(m.group(1)) + int(m.group(3))) // 2
@@ -229,9 +227,7 @@ class AutoBootDiagnostics:
                                 break
                 print(f"  Tapping Machine Diagnostics at ({diag_x}, {diag_y})...")
                 self.tap(diag_x, diag_y)
-                time.sleep(0.5)
-                self.tap(diag_x, diag_y)  # Double tap to ensure click registered
-                time.sleep(1.5)
+                time.sleep(2.0)
 
             else:
                 print("  [State Pending] Screen transition in progress. Re-probing...")

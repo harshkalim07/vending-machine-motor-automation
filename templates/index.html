@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendiman Motor QA Bench</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        @keyframes pulse-orange-ring {
+            0% { transform: scale(0.97); box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.6); }
+            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(249, 115, 22, 0); }
+            100% { transform: scale(0.97); box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+        }
+        .anim-active-motor {
+            animation: pulse-orange-ring 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+            border-color: #f97316 !important;
+            background-color: #fff7ed !important;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen antialiased flex flex-col justify-between">
+
+    <!-- Top Navigation Header (White + Orange theme) -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            <!-- Branding -->
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-500 flex items-center justify-center shadow-md shadow-orange-500/20 text-white font-bold text-xl">
+                    <i class="fa-solid fa-gear"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2.5">
+                        <h1 class="text-xl font-extrabold tracking-tight text-slate-900">
+                            Vendiman Motor QA Bench
+                        </h1>
+                        <span class="text-[11px] font-bold bg-orange-100 text-orange-700 border border-orange-200 px-2.5 py-0.5 rounded-full">
+                            TESTER EDITION
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        Autonomous 45-Motor Stress Testing & Red Cross Jam Detection
+                    </p>
+                </div>
+            </div>
+
+            <!-- Global Hardware & Screen Status Bar -->
+            <div class="flex items-center gap-3 flex-wrap">
+                
+                <!-- ADB Device Connection Badge -->
+                <div id="deviceBadge" class="flex items-center gap-2 bg-slate-100 border border-slate-200 px-3.5 py-1.5 rounded-xl text-xs font-medium">
+                    <span id="deviceDot" class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                    <span id="deviceText" class="text-slate-600 font-mono">Checking ADB...</span>
+                    <button onclick="reconnectDevice()" title="Reconnect ADB" class="text-slate-400 hover:text-orange-600 transition ml-1">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+
+                <!-- Live Kiosk Screen Awareness Badge -->
+                <div id="screenBadge" class="flex items-center gap-2 bg-slate-100 border border-slate-200 px-3.5 py-1.5 rounded-xl text-xs font-medium">
+                    <i class="fa-solid fa-mobile-screen text-slate-500"></i>
+                    <span class="text-slate-500">Screen:</span>
+                    <span id="screenText" class="text-orange-600 font-semibold font-mono">Probing...</span>
+                    <button onclick="detectScreen()" title="Probe Current Screen" class="text-slate-400 hover:text-orange-600 transition ml-1">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </div>
+
+                <!-- Sound Alert Toggle -->
+                <button id="soundToggle" onclick="toggleSound()" class="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 shadow-sm transition">
+                    <i id="soundIcon" class="fa-solid fa-volume-high text-emerald-600"></i>
+                    <span id="soundText">Sound ON</span>
+                </button>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-6 py-8 space-y-8 flex-1 w-full">
+
+        <!-- Critical Alert Banner (Flashes on Red Cross Jam) -->
+        <div id="alertBanner" class="hidden bg-rose-50 border-2 border-rose-500 text-rose-900 px-6 py-4 rounded-2xl flex items-center justify-between shadow-xl shadow-rose-500/10 transition">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-rose-600 flex items-center justify-center text-white text-2xl animate-bounce shadow-md shadow-rose-600/30">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-extrabold text-rose-950 flex items-center gap-2">
+                        🚨 MOTOR JAM / RED CROSS DETECTED!
+                    </h3>
+                    <p id="alertBannerText" class="text-sm text-rose-700 font-medium">Motor hardware fault encountered.</p>
+                </div>
+            </div>
+            <button onclick="dismissAlert()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs px-4 py-2 rounded-xl font-bold transition shadow-sm">
+                Acknowledge Alert
+            </button>
+        </div>
+
+        <!-- Testing Control Deck (White Cards + Orange Accents) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Execution Controls (Left, 5 cols) -->
+            <div class="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-orange-500"></i>
+                            Select Execution Mode
+                        </h2>
+                        <span class="text-xs text-slate-400 font-medium">1-Click Automated</span>
+                    </div>
+
+                    <!-- 3 Clean Mode Options -->
+                    <div class="space-y-3 mb-6">
+                        
+                        <!-- Mode 1: Run All / Resume from Motor -->
+                        <label class="block p-4 rounded-xl border-2 border-orange-500 bg-orange-50/40 hover:bg-orange-50/70 cursor-pointer transition relative" id="modeAllCard">
+                            <div class="flex items-start gap-3">
+                                <input type="radio" name="testMode" value="all" checked onchange="updateModeUI()" class="mt-1 text-orange-600 focus:ring-orange-500">
+                                <div class="flex-1">
+                                    <span class="font-bold text-sm text-slate-900 block">Test All / Resume From Motor</span>
+                                    <span class="text-xs text-slate-500 block mt-0.5">Tests sequentially starting from this motor through to Motor #609.</span>
+                                    
+                                    <!-- Bin Input for Mode 1 -->
+                                    <div id="allModeInput" class="mt-3 flex items-center gap-2">
+                                        <span class="text-xs font-semibold text-slate-700">Start from Motor #:</span>
+                                        <input type="number" id="startBinInput" value="100" class="w-24 bg-white border border-slate-300 rounded-lg px-3 py-1 text-sm font-bold font-mono text-center text-slate-900 focus:outline-none focus:border-orange-500 shadow-sm">
+                                        <span class="text-xs text-slate-400">(Default: 100)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+
+                        <!-- Mode 2: Test Specific Motor Only -->
+                        <label class="block p-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer transition relative" id="modeSingleCard">
+                            <div class="flex items-start gap-3">
+                                <input type="radio" name="testMode" value="single" onchange="updateModeUI()" class="mt-1 text-orange-600 focus:ring-orange-500">
+                                <div class="flex-1">
+                                    <span class="font-bold text-sm text-slate-900 block">Test Single Specific Motor</span>
+                                    <span class="text-xs text-slate-500 block mt-0.5">Runs a standalone 45-rotation test on this one motor only.</span>
+                                    
+                                    <!-- Bin Input for Mode 2 -->
+                                    <div id="singleModeInput" class="mt-3 flex items-center gap-2 opacity-50">
+                                        <span class="text-xs font-semibold text-slate-700">Target Motor #:</span>
+                                        <input type="number" id="singleBinInput" value="104" disabled class="w-24 bg-white border border-slate-300 rounded-lg px-3 py-1 text-sm font-bold font-mono text-center text-slate-900 focus:outline-none focus:border-orange-500 shadow-sm">
+                                        <span class="text-xs text-slate-400">(e.g., 104, 502)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+
+                        <!-- Mode 3: Open Diagnostics Screen Only -->
+                        <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+                            <div>
+                                <span class="font-bold text-xs text-slate-800 block">Open Diagnostics Screen Only</span>
+                                <span class="text-[11px] text-slate-500 block">Autonomously logs in and parks on Machine Diagnostics without spinning motors.</span>
+                            </div>
+                            <button onclick="startNavOnly()" id="navOnlyBtn" class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 hover:text-orange-600 text-xs font-bold px-3 py-2 rounded-lg shadow-sm transition whitespace-nowrap">
+                                <i class="fa-solid fa-arrow-up-right-from-square mr-1 text-orange-500"></i> Open Screen
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="space-y-3 pt-4 border-t border-slate-100">
+                    
+                    <!-- THE BIG ORANGE START BUTTON -->
+                    <button id="startBtn" onclick="startAutomation()" class="w-full bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold text-base py-4 px-6 rounded-xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-3 transition transform active:scale-[0.99]">
+                        <i class="fa-solid fa-play text-base"></i>
+                        <span>START MOTOR AUTOMATION</span>
+                    </button>
+
+                    <div class="flex items-center gap-3">
+                        <!-- Request Stop Button -->
+                        <button id="stopBtn" onclick="requestStop()" class="flex-1 bg-white hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 border border-slate-300 text-slate-700 font-bold text-sm py-2.5 px-4 rounded-xl shadow-sm transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-stop text-slate-400"></i>
+                            <span id="stopBtnText">Request Stop</span>
+                        </button>
+
+                        <!-- Reset Matrix Button -->
+                        <button onclick="resetGrid()" class="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 hover:text-orange-600 text-sm py-2.5 px-4 rounded-xl shadow-sm transition" title="Reset all motor statuses to pending">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Reset
+                        </button>
+                    </div>
+
+                    <!-- Hardware Notice -->
+                    <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 flex items-start gap-2.5">
+                        <i class="fa-solid fa-circle-info text-amber-600 mt-0.5"></i>
+                        <span>
+                            <strong>Hardware Behavior:</strong> Kiosk firmware locks during active rotation. Clicking <em>Request Stop</em> finishes the active 45-rotation cycle safely, then returns to Diagnostics without starting subsequent motors.
+                        </span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Live Status & Telemetry (Right, 7 cols) -->
+            <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line text-orange-500"></i>
+                            Live Test Telemetry
+                        </h2>
+                        <span id="automationStatusBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                            IDLE
+                        </span>
+                    </div>
+
+                    <!-- Current Active Motor Highlight Box -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <span class="text-xs uppercase tracking-wider font-semibold text-slate-400 block">Active Motor Under Test</span>
+                                <span id="telemetryActiveBin" class="text-3xl font-black font-mono text-slate-900">None</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs uppercase tracking-wider font-semibold text-slate-400 block">Rotation Progress</span>
+                                <span id="telemetryRotationCount" class="text-2xl font-bold font-mono text-orange-600">0 / 45</span>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar (Orange) -->
+                        <div class="w-full bg-slate-200 rounded-full h-3.5 overflow-hidden mb-2.5">
+                            <div id="telemetryProgressBar" class="bg-gradient-to-r from-orange-500 to-amber-500 h-3.5 rounded-full transition-all duration-300 w-0"></div>
+                        </div>
+
+                        <div class="flex justify-between text-xs text-slate-500 font-mono font-medium">
+                            <span id="telemetryElapsedTime">Elapsed: 0s</span>
+                            <span>Target: ~258s (45 Rotations)</span>
+                        </div>
+                    </div>
+
+                    <!-- Metrics Grid -->
+                    <div class="grid grid-cols-4 gap-3.5 text-center">
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                            <span class="text-xs font-semibold text-slate-500 block">Total Motors</span>
+                            <span class="text-xl font-black font-mono text-slate-800">45</span>
+                        </div>
+                        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                            <span class="text-xs font-semibold text-emerald-700 block">Passed</span>
+                            <span id="statPassed" class="text-xl font-black font-mono text-emerald-600">0</span>
+                        </div>
+                        <div class="bg-rose-50 border border-rose-200 rounded-xl p-3">
+                            <span class="text-xs font-semibold text-rose-700 block">Jammed / Failed</span>
+                            <span id="statFailed" class="text-xl font-black font-mono text-rose-600">0</span>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                            <span class="text-xs font-semibold text-slate-500 block">Pending</span>
+                            <span id="statPending" class="text-xl font-black font-mono text-slate-600">45</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="flex items-center justify-between text-xs text-slate-500 pt-4 border-t border-slate-100 mt-6 flex-wrap gap-2">
+                    <span class="font-bold text-slate-700">Status Legend:</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-slate-300 inline-block"></span> Waiting</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse inline-block"></span> Spinning</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Passed ✅</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Jammed ❌</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 45-Motor Visual Telemetry Matrix -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-6 pb-3 border-b border-slate-100">
+                <div>
+                    <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-boxes-stacked text-orange-500"></i>
+                        45-Motor Visual Matrix
+                    </h2>
+                    <p class="text-xs text-slate-500">Click any motor tile to quick-select it for testing</p>
+                </div>
+                <div class="text-xs font-mono font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-lg">
+                    Slots: 100 - 609
+                </div>
+            </div>
+
+            <!-- Trays Display -->
+            <div class="space-y-6">
+                
+                <!-- Tray 1 -->
+                <div>
+                    <div class="text-xs font-extrabold text-slate-600 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-orange-500"></span> Tray 1 (5 Motors: 100 - 104)
+                    </div>
+                    <div class="grid grid-cols-5 gap-3" id="tray1Container"></div>
+                </div>
+
+                <!-- Tray 2 -->
+                <div>
+                    <div class="text-xs font-extrabold text-slate-600 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-orange-500"></span> Tray 2 (5 Motors: 200 - 204)
+                    </div>
+                    <div class="grid grid-cols-5 gap-3" id="tray2Container"></div>
+                </div>
+
+                <!-- Tray 3 -->
+                <div>
+                    <div class="text-xs font-extrabold text-slate-600 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-orange-500"></span> Tray 3 (5 Motors: 300 - 304)
+                    </div>
+                    <div class="grid grid-cols-5 gap-3" id="tray3Container"></div>
+                </div>
+
+                <!-- Tray 4 -->
+                <div>
+                    <div class="text-xs font-extrabold text-slate-600 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-amber-500"></span> Tray 4 (10 Motors: 400 - 409)
+                    </div>
+                    <div class="grid grid-cols-5 md:grid-cols-10 gap-2.5" id="tray4Container"></div>
+                </div>
+
+                <!-- Tray 5 -->
+                <div>
+                    <div class="text-xs font-extrabold text-slate-600 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-amber-500"></span> Tray 5 (10 Motors: 500 - 509)
+                    </div>
+                    <div class="grid grid-cols-5 md:grid-cols-10 gap-2.5" id="tray5Container"></div>
+                </div>
+
+                <!-- Tray 6 -->
+                <div>
+                    <div class="text-xs font-extrabold text-slate-600 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-amber-500"></span> Tray 6 (10 Motors: 600 - 609)
+                    </div>
+                    <div class="grid grid-cols-5 md:grid-cols-10 gap-2.5" id="tray6Container"></div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Live Terminal / Activity Log Stream -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-terminal text-orange-500"></i>
+                    Live Automation Activity Stream
+                </h2>
+                <span class="text-xs font-mono text-slate-400">Terminal Output</span>
+            </div>
+
+            <div id="logWindow" class="bg-slate-900 text-slate-100 rounded-xl p-4 font-mono text-xs h-60 overflow-y-auto space-y-1.5 shadow-inner">
+                <div class="text-slate-400">// Vendiman QA Bench initialized. Awaiting commands...</div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+        Vendiman Smart Kiosk Hardware QA Bench &bull; Closed-Loop ADB State Machine Engine
+    </footer>
+
+    <!-- Client-Side Dashboard Controller -->
+    <script>
+        const TRAY_CONFIG = {
+            tray1: [100, 101, 102, 103, 104],
+            tray2: [200, 201, 202, 203, 204],
+            tray3: [300, 301, 302, 303, 304],
+            tray4: [400, 401, 402, 403, 404, 405, 406, 407, 408, 409],
+            tray5: [500, 501, 502, 503, 504, 505, 506, 507, 508, 509],
+            tray6: [600, 601, 602, 603, 604, 605, 606, 607, 608, 609]
+        };
+
+        let soundEnabled = true;
+        let lastAlertMessage = null;
+
+        // Initialize UI Grid Tiles
+        function renderMotorGrids() {
+            for (let [trayName, bins] of Object.entries(TRAY_CONFIG)) {
+                const container = document.getElementById(trayName + 'Container');
+                if (!container) continue;
+                container.innerHTML = '';
+                bins.forEach(bin => {
+                    const tile = document.createElement('div');
+                    tile.id = `motor-tile-${bin}`;
+                    tile.className = 'motor-tile bg-white border border-slate-200 hover:border-orange-400 rounded-xl p-2.5 text-center cursor-pointer transition select-none flex flex-col justify-between items-center shadow-xs';
+                    tile.onclick = () => selectMotor(bin);
+                    tile.innerHTML = `
+                        <div class="text-sm font-extrabold font-mono text-slate-800">#${bin}</div>
+                        <div id="badge-${bin}" class="mt-1 text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-500">Waiting</div>
+                    `;
+                    container.appendChild(tile);
+                });
+            }
+        }
+
+        // Click tile to select
+        function selectMotor(bin) {
+            document.getElementById('startBinInput').value = bin;
+            document.getElementById('singleBinInput').value = bin;
+            const singleRadio = document.querySelector('input[name="testMode"][value="single"]');
+            singleRadio.checked = true;
+            updateModeUI();
+        }
+
+        // Mode UI Switch
+        function updateModeUI() {
+            const mode = document.querySelector('input[name="testMode"]:checked').value;
+            const allCard = document.getElementById('modeAllCard');
+            const singleCard = document.getElementById('modeSingleCard');
+            const allDiv = document.getElementById('allModeInput');
+            const singleDiv = document.getElementById('singleModeInput');
+            const singleInput = document.getElementById('singleBinInput');
+            const startInput = document.getElementById('startBinInput');
+
+            if (mode === 'all') {
+                allCard.className = 'block p-4 rounded-xl border-2 border-orange-500 bg-orange-50/40 hover:bg-orange-50/70 cursor-pointer transition relative';
+                singleCard.className = 'block p-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer transition relative';
+                allDiv.classList.remove('opacity-50');
+                startInput.disabled = false;
+                singleDiv.classList.add('opacity-50');
+                singleInput.disabled = true;
+            } else {
+                allCard.className = 'block p-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer transition relative';
+                singleCard.className = 'block p-4 rounded-xl border-2 border-orange-500 bg-orange-50/40 hover:bg-orange-50/70 cursor-pointer transition relative';
+                allDiv.classList.add('opacity-50');
+                startInput.disabled = true;
+                singleDiv.classList.remove('opacity-50');
+                singleInput.disabled = false;
+            }
+        }
+
+        // Web Audio Synthesizer Beep
+        function playWarningBeep() {
+            if (!soundEnabled) return;
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(440, audioCtx.currentTime + 0.15);
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.5);
+            } catch (e) {
+                console.warn("Audio alert error:", e);
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('soundIcon');
+            const text = document.getElementById('soundText');
+            if (soundEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-emerald-600';
+                text.innerText = 'Sound ON';
+                playWarningBeep();
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-slate-400';
+                text.innerText = 'Sound OFF';
+            }
+        }
+
+        // Start Automation
+        async function startAutomation() {
+            const mode = document.querySelector('input[name="testMode"]:checked').value;
+            const startBin = mode === 'all' 
+                ? document.getElementById('startBinInput').value 
+                : document.getElementById('singleBinInput').value;
+
+            try {
+                const res = await fetch('/api/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: mode, start_bin: parseInt(startBin) })
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    alert(data.message);
+                }
+            } catch (e) {
+                alert("Failed to start automation: " + e);
+            }
+        }
+
+        // Start Nav Only
+        async function startNavOnly() {
+            try {
+                const res = await fetch('/api/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: 'nav_only', start_bin: 100 })
+                });
+                const data = await res.json();
+                if (!data.success) alert(data.message);
+            } catch (e) {
+                alert("Failed to open diagnostics: " + e);
+            }
+        }
+
+        // Request Stop
+        async function requestStop() {
+            try {
+                const res = await fetch('/api/stop', { method: 'POST' });
+                const data = await res.json();
+                document.getElementById('stopBtnText').innerText = 'Stopping...';
+            } catch (e) {
+                alert("Failed to send stop request: " + e);
+            }
+        }
+
+        // Reset Grid
+        async function resetGrid() {
+            if (confirm("Reset all motor statuses back to Pending?")) {
+                await fetch('/api/reset', { method: 'POST' });
+            }
+        }
+
+        // Reconnect Device
+        async function reconnectDevice() {
+            document.getElementById('deviceText').innerText = 'Reconnecting...';
+            await fetch('/api/connect', { method: 'POST' });
+        }
+
+        // Detect Screen
+        async function detectScreen() {
+            document.getElementById('screenText').innerText = 'Probing...';
+            await fetch('/api/detect-screen', { method: 'POST' });
+        }
+
+        function dismissAlert() {
+            document.getElementById('alertBanner').classList.add('hidden');
+        }
+
+        // Polling loop for status updates (every 1 second)
+        async function pollStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const state = await res.json();
+
+                // Device connection badge
+                const dot = document.getElementById('deviceDot');
+                const devText = document.getElementById('deviceText');
+                if (state.connected) {
+                    dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm';
+                    devText.innerText = `Connected (${state.device_ip})`;
+                    devText.className = 'text-emerald-700 font-mono text-xs font-semibold';
+                } else {
+                    dot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+                    devText.innerText = `Offline (${state.device_ip})`;
+                    devText.className = 'text-rose-600 font-mono text-xs';
+                }
+
+                // Screen State Badge
+                document.getElementById('screenText').innerText = state.current_screen || 'UNKNOWN';
+
+                // Status Badge & Controls
+                const statusBadge = document.getElementById('automationStatusBadge');
+                statusBadge.innerText = state.status;
+                const startBtn = document.getElementById('startBtn');
+                const navOnlyBtn = document.getElementById('navOnlyBtn');
+
+                if (state.status === 'RUNNING') {
+                    statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700 border border-orange-300 animate-pulse';
+                    startBtn.disabled = true;
+                    startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    if (navOnlyBtn) navOnlyBtn.disabled = true;
+                    document.getElementById('stopBtnText').innerText = 'Request Stop';
+                } else if (state.status === 'STOP_REQUESTED') {
+                    statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-300 animate-pulse';
+                    startBtn.disabled = true;
+                    if (navOnlyBtn) navOnlyBtn.disabled = true;
+                    document.getElementById('stopBtnText').innerText = '⏳ Finishing active cycle...';
+                } else {
+                    statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200';
+                    startBtn.disabled = false;
+                    startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    if (navOnlyBtn) navOnlyBtn.disabled = false;
+                    document.getElementById('stopBtnText').innerText = 'Request Stop';
+                }
+
+                // Active Telemetry Box
+                if (state.current_bin) {
+                    document.getElementById('telemetryActiveBin').innerText = `#${state.current_bin}`;
+                    document.getElementById('telemetryRotationCount').innerText = `${state.active_rotation} / 45`;
+                    const pct = Math.min(100, Math.round((state.elapsed_seconds / state.total_seconds) * 100));
+                    document.getElementById('telemetryProgressBar').style.width = pct + '%';
+                    document.getElementById('telemetryElapsedTime').innerText = `Elapsed: ${state.elapsed_seconds}s (${pct}%)`;
+                } else {
+                    document.getElementById('telemetryActiveBin').innerText = state.status === 'COMPLETED' ? 'Finished 🎉' : 'None';
+                    document.getElementById('telemetryRotationCount').innerText = '0 / 45';
+                    document.getElementById('telemetryProgressBar').style.width = '0%';
+                    document.getElementById('telemetryElapsedTime').innerText = 'Elapsed: 0s';
+                }
+
+                // Critical Alert Banner
+                if (state.alert && state.alert !== lastAlertMessage) {
+                    lastAlertMessage = state.alert;
+                    document.getElementById('alertBannerText').innerText = state.alert;
+                    document.getElementById('alertBanner').classList.remove('hidden');
+                    playWarningBeep();
+                }
+
+                // Counters
+                let passed = 0, failed = 0, pending = 0;
+
+                // Update Motor Grid Tiles
+                for (let [binStr, res] of Object.entries(state.motor_results || {})) {
+                    const bin = parseInt(binStr);
+                    const tile = document.getElementById(`motor-tile-${bin}`);
+                    const badge = document.getElementById(`badge-${bin}`);
+                    if (!tile || !badge) continue;
+
+                    tile.classList.remove('anim-active-motor', 'bg-emerald-50', 'border-emerald-300', 'bg-rose-50', 'border-rose-300', 'bg-orange-50', 'border-orange-400');
+
+                    if (res.status === 'RUNNING' || bin === state.current_bin) {
+                        tile.classList.add('anim-active-motor');
+                        badge.className = 'mt-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-orange-600 text-white animate-pulse';
+                        badge.innerText = `Rot ${state.active_rotation}/45`;
+                        pending++;
+                    } else if (res.status === 'PASS') {
+                        tile.classList.add('bg-emerald-50', 'border-emerald-300');
+                        badge.className = 'mt-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-200';
+                        badge.innerText = 'PASS ✅';
+                        passed++;
+                    } else if (res.status === 'FAIL') {
+                        tile.classList.add('bg-rose-50', 'border-rose-300');
+                        badge.className = 'mt-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-600 text-white';
+                        badge.innerText = res.failed_rotations && res.failed_rotations.length ? `JAM: Rot #${res.failed_rotations.join(',')}` : 'JAM ❌';
+                        failed++;
+                    } else {
+                        badge.className = 'mt-1 text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-500';
+                        badge.innerText = 'Waiting';
+                        pending++;
+                    }
+                }
+
+                document.getElementById('statPassed').innerText = passed;
+                document.getElementById('statFailed').innerText = failed;
+                document.getElementById('statPending').innerText = pending;
+
+                // Update Log Window
+                const logWindow = document.getElementById('logWindow');
+                if (state.logs && state.logs.length > 0) {
+                    const shouldScroll = logWindow.scrollTop + logWindow.clientHeight >= logWindow.scrollHeight - 50;
+                    logWindow.innerHTML = state.logs.map(log => {
+                        let color = 'text-slate-300';
+                        if (log.level === 'SUCCESS') color = 'text-emerald-400 font-semibold';
+                        if (log.level === 'ERROR') color = 'text-rose-400 font-bold';
+                        if (log.level === 'WARN') color = 'text-amber-400 font-semibold';
+                        return `<div><span class="text-slate-500">[${log.time}]</span> <span class="${color}">${log.text}</span></div>`;
+                    }).join('');
+                    if (shouldScroll) {
+                        logWindow.scrollTop = logWindow.scrollHeight;
+                    }
+                }
+
+            } catch (e) {
+                console.warn("Poll status error:", e);
+            }
+        }
+
+        // Initialize on page load
+        window.onload = () => {
+            renderMotorGrids();
+            updateModeUI();
+            pollStatus();
+            setInterval(pollStatus, 1000);
+        };
+    </script>
+</body>
+</html>
