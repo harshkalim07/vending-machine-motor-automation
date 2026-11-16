@@ -113,9 +113,9 @@ class AutomationEngine:
             url = f"https://ntfy.sh/{topic}"
             headers = {"Title": title, "Priority": priority, "Tags": tags}
             try:
-                requests.post(url, data=message.encode("utf-8"), headers=headers, timeout=5)
-            except Exception as e:
-                self.log(f"Push notification failed: {e}", level="WARN")
+                requests.post(url, data=message.encode("utf-8"), headers=headers, timeout=2)
+            except Exception:
+                pass
         threading.Thread(target=_send, daemon=True).start()
 
     def run_cmd(self, cmd_args, timeout=15):
@@ -139,19 +139,27 @@ class AutomationEngine:
         self.run_cmd(["shell", f"input keyevent {int(code)}"])
 
     def check_connection(self):
-        """Checks and connects ADB to target vending kiosk"""
-        self.log(f"Connecting to vending kiosk at {self.target}...")
-        self.run_cmd(["connect", self.target])
-        time.sleep(0.5)
-        code, out, _ = self.run_cmd(["devices"])
-        connected = any(self.target in line and "device" in line for line in out.splitlines())
+        """Checks and connects ADB to target vending kiosk with auto-retry"""
+        for attempt in range(1, 4):
+            code, out, _ = self.run_cmd(["devices"])
+            if any(self.target in line and "\tdevice" in line for line in out.splitlines()):
+                test_code, test_out, _ = self.run_cmd(["shell", "echo ok"], timeout=5)
+                if test_code == 0 and "ok" in test_out:
+                    with self.lock:
+                        self.state["connected"] = True
+                    self.log(f"Connected to kiosk ({self.target})", level="SUCCESS")
+                    return True
+
+            self.log(f"Connecting to vending kiosk at {self.target} (Attempt {attempt}/3)...")
+            self.run_cmd(["disconnect", self.target], timeout=5)
+            time.sleep(0.3)
+            self.run_cmd(["connect", self.target], timeout=8)
+            time.sleep(0.5)
+
         with self.lock:
-            self.state["connected"] = connected
-        if connected:
-            self.log(f"Connected to kiosk ({self.target})", level="SUCCESS")
-        else:
-            self.log(f"Cannot reach {self.target}. Verify kiosk IP & Wi-Fi.", level="ERROR")
-        return connected
+            self.state["connected"] = False
+        self.log(f"Cannot reach {self.target}. Verify kiosk IP & Wi-Fi.", level="ERROR")
+        return False
 
     def get_ui_xml(self):
         remote_xml = "/data/local/tmp/kiosk_ui.xml"
@@ -216,7 +224,6 @@ class AutomationEngine:
         """Autonomously navigates through any screen into Machine Diagnostics"""
         self.log("Universal Screen Awareness: Checking current kiosk screen...")
         otp = self.calculate_today_otp()
-        otp_submitted = False
 
         for step in range(1, max_steps + 1):
             if self.stop_requested:
@@ -263,16 +270,7 @@ class AutomationEngine:
                 time.sleep(1.5)
 
             elif state == "OTP_SCREEN":
-                if otp_submitted:
-                    self.log("OTP already submitted. Waiting for transition to Admin Menu...")
-                    for _ in range(8):
-                        time.sleep(0.5)
-                        if self.detect_screen() != "OTP_SCREEN":
-                            break
-                    continue
-
                 self.log(f"Entering dynamic rolling master OTP: '{otp}'...")
-                # Center of edtPassword is (540, 544), LOGIN is (540, 710)
                 input_x, input_y = 540, 544
                 login_x, login_y = 540, 710
                 root = self.get_ui_xml()
@@ -290,40 +288,18 @@ class AutomationEngine:
                             if "LOGIN" in txt or "btnlogin" in rid or "btn_login" in rid:
                                 login_x, login_y = cx, cy
 
-                self.log(f"Focusing OTP input field at ({input_x}, {input_y})...")
-                self.tap(input_x, input_y)
-                time.sleep(0.4)
-
-                # Thorough bidirectional clear
-                self.keyevent(123) # KEYCODE_MOVE_END
-                self.run_cmd(["shell", "input keyevent " + " ".join(["67"] * 30)])
-                self.keyevent(122) # KEYCODE_MOVE_HOME
-                self.run_cmd(["shell", "input keyevent " + " ".join(["112"] * 30)])
-                time.sleep(0.2)
-
-                # Type OTP cleanly once
+                # Execute focus, clear, type OTP, dismiss keyboard, and click LOGIN in ONE ATOMIC ADB command (< 0.8s)
+                # Over Wi-Fi ADB, chaining everything in a single shell command prevents network lag from expiring the 45s QR timer!
+                clear_keys = " ".join(["67"] * 25)
                 if "@" in otp:
                     p1, p2 = otp.split("@", 1)
-                    type_cmd = f"input text '{p1}' && input keyevent 77 && input text '{p2}'"
+                    type_chain = f"input text '{p1}' && input keyevent 77 && input text '{p2}'"
                 else:
-                    type_cmd = f"input text '{otp}'"
-                self.run_cmd(["shell", type_cmd])
-                time.sleep(0.5)
+                    type_chain = f"input text '{otp}'"
 
-                # Hide keyboard & Click LOGIN
-                self.keyevent(111)
-                time.sleep(0.3)
-                self.log(f"Tapping LOGIN button at ({login_x}, {login_y})...")
-                self.tap(login_x, login_y)
-                otp_submitted = True
-
-                # Wait for transition to complete
-                for _ in range(10):
-                    time.sleep(0.5)
-                    transition_state = self.detect_screen()
-                    if transition_state != "OTP_SCREEN":
-                        self.log(f"Transition confirmed: [{transition_state}]", level="SUCCESS")
-                        break
+                full_otp_cmd = f"input tap {input_x} {input_y} && input keyevent {clear_keys} && {type_chain} && input keyevent 111 && sleep 0.2 && input tap {login_x} {login_y}"
+                self.run_cmd(["shell", full_otp_cmd])
+                time.sleep(1.2)
 
             elif state == "ADMIN_MENU":
                 diag_x, diag_y = 270, 365  # Center of [7, 307][533, 422]
