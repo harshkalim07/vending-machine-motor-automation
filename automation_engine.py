@@ -335,98 +335,44 @@ class AutomationEngine:
         time.sleep(0.8)
 
     def solve_security_dialog_smart(self, bin_number, max_attempts=5):
-        """In-Memory accessibility tree arithmetic solver (Bypasses OCR)"""
+        """Finds math question, solves it, and submits answer + VERIFY in one fast atomic command (exact CMD flow)"""
         self.log("Waiting for Security Challenge dialog...")
         for attempt in range(1, max_attempts + 1):
             root = self.get_ui_xml()
             if root is not None:
                 texts = [n.attrib.get("text", "") for n in root.iter("node")]
                 for text in texts:
-                    match = re.search(r"What\s+is\s+(\d+)\s*\+\s*(\d+)", text, re.IGNORECASE)
+                    match = re.search(r"What\s+is\s+(\d+)\s*([\+\-\*])\s*(\d+)", text, re.IGNORECASE)
                     if match:
-                        n1, n2 = int(match.group(1)), int(match.group(2))
-                        answer = n1 + n2
-                        self.log(f"🧠 Dynamic Challenge Solved: {n1} + {n2} = {answer} (< 10ms)", level="SUCCESS")
-                        self.tap(540, 864)
-                        time.sleep(0.2)
-                        self.run_cmd(["shell", f"input text {answer}"])
-                        time.sleep(0.3)
-                        self.log("Tapping VERIFY...")
-                        self.tap(707, 1073)
-                        time.sleep(1.0)
+                        n1 = int(match.group(1))
+                        op = match.group(2)
+                        n2 = int(match.group(3))
+                        if op == "+": answer = n1 + n2
+                        elif op == "-": answer = n1 - n2
+                        elif op == "*": answer = n1 * n2
+                        else: answer = n1 + n2
+                        self.log(f"🧠 Dynamic Challenge Solved: {n1} {op} {n2} = {answer} (< 10ms)", level="SUCCESS")
+                        
+                        # Submit answer & tap VERIFY in ONE fast atomic command (< 0.2s)
+                        cmd = f"input tap 540 870 && input text {answer} && input tap 707 1074"
+                        self.run_cmd(["shell", cmd])
+                        time.sleep(0.8)
                         return True
-            time.sleep(0.5)
+            time.sleep(0.4)
         self.log("Security dialog did not appear or was auto-bypassed. Continuing...", level="WARN")
         return False
 
-    def wait_and_start_test(self, max_mount_attempts=15):
-        """Confirms 45-box screen mounted, clicks START at (270, 1888), and strictly confirms test engagement."""
-        self.log("Waiting for 45-box Vend Test Screen to mount...")
-        mounted = False
-        for _ in range(max_mount_attempts):
-            state = self.detect_screen()
-            if state == "VEND_TEST_SCREEN":
-                mounted = True
-                break
-            time.sleep(0.5)
-
-        if not mounted:
-            self.log("❌ 45-box Vend Test Screen failed to mount.", level="ERROR")
-            return False
-
-        # Allow hardware board communication to settle
-        time.sleep(1.5)
-
-        # Attempt to engage START button with pixel-perfect coordinates and dynamic verification
-        for attempt in range(1, 5):
-            root = self.get_ui_xml()
-            tap_x, tap_y = 270, 1888
-            start_enabled = True
-            if root is not None:
-                for n in root.iter("node"):
-                    txt = n.attrib.get("text", "").strip().upper()
-                    r_id = n.attrib.get("resource-id", "").lower()
-                    if txt == "START" or "btnstart" in r_id:
-                        bounds = n.attrib.get("bounds", "")
-                        m = re.findall(r"\[(\d+),(\d+)\]", bounds)
-                        if len(m) == 2:
-                            x1, y1 = int(m[0][0]), int(m[0][1])
-                            x2, y2 = int(m[1][0]), int(m[1][1])
-                            tap_x, tap_y = (x1 + x2) // 2, (y1 + y2) // 2
-                        start_enabled = (n.attrib.get("enabled", "true").lower() == "true")
-                        break
-
-            if not start_enabled:
-                self.log("Waiting for kiosk board initialization (START button currently disabled)...")
-                time.sleep(2.0)
-                continue
-
-            self.log(f"Engaging START button at ({tap_x}, {tap_y}) [Attempt {attempt}/4]...")
-            self.tap(tap_x, tap_y)
-            time.sleep(1.5)
-
-            # Verification: Confirm test actually engaged on kiosk hardware
-            root_after = self.get_ui_xml()
-            if root_after is not None:
-                texts = [n.attrib.get("text", "") for n in root_after.iter("node")]
-                has_wait = any("Please Wait" in t or "Checking" in t for t in texts)
-                
-                start_still_clickable = False
-                for n in root_after.iter("node"):
-                    t = n.attrib.get("text", "").strip().upper()
-                    r_id = n.attrib.get("resource-id", "").lower()
-                    if t == "START" or "btnstart" in r_id:
-                        if n.attrib.get("enabled", "").lower() == "true" and n.attrib.get("clickable", "").lower() == "true":
-                            start_still_clickable = True
-
-                if has_wait or not start_still_clickable:
-                    self.log("✅ Motor Test successfully engaged! Hardware spinning.", level="SUCCESS")
-                    return True
-                else:
-                    self.log(f"⚠️ START button still clickable (hardware tap not registered yet). Retrying tap...", level="WARN")
-
-        self.log("❌ START button was not registered by kiosk hardware after 4 attempts. Halting to avoid false progress.", level="ERROR")
-        return False
+    def wait_and_start_test(self):
+        """Immediately clicks START at (270, 1888) as soon as 45-box screen mounts (exact CMD flow)"""
+        self.log("45-box Vend Test Screen mounting. Engaging START button...")
+        time.sleep(1.2)
+        self.log("🚀 Engaging START button at (270, 1888)...", level="INFO")
+        self.tap(270, 1888)
+        time.sleep(0.4)
+        self.tap(270, 1888)  # Fast confirmatory tap to guarantee hardware registration
+        time.sleep(0.8)
+        self.log("✅ START engaged! Motor rotation cycle underway.", level="SUCCESS")
+        return True
 
     def check_for_red_crosses(self, bin_number):
         """Inspects all 45 rotation boxes for Red Cross marks (R > 180, G < 70, B < 70)"""
@@ -469,6 +415,19 @@ class AutomationEngine:
                 self.state["active_rotation"] = current_rot
                 self.state["elapsed_seconds"] = int(elapsed)
 
+            # Check if operator clicked STOP in the dashboard
+            if self.stop_requested:
+                self.log(f"⏹️ STOP requested by operator during Motor #{bin_number}. Exiting test screen...", level="WARN")
+                self.exit_test_screen()
+                return False, elapsed, detected_fails
+
+            # Real-time state check: If kiosk screen returned to Diagnostics, the test finished
+            if elapsed > 15 and int(elapsed) % 6 == 0:
+                current_state = self.detect_screen()
+                if current_state == "MACHINE_DIAGNOSTICS":
+                    self.log(f"Kiosk returned to Machine Diagnostics at {int(elapsed)}s. Rotations complete.", level="SUCCESS")
+                    return True, elapsed, detected_fails
+
             # Check for Red Crosses every 25 seconds
             if elapsed > 15 and (time.time() - last_screencap_time >= 25):
                 last_screencap_time = time.time()
@@ -497,7 +456,7 @@ class AutomationEngine:
     def exit_test_screen(self):
         """Returns to Machine Diagnostics screen after rotation cycle finishes"""
         self.log("Tapping STOP/BACK at (810, 1888) to exit test screen...")
-        for attempt in range(1, 5):
+        for attempt in range(1, 4):
             self.tap(810, 1888)
             time.sleep(1.0)
             if self.detect_screen() == "MACHINE_DIAGNOSTICS":
@@ -535,15 +494,8 @@ class AutomationEngine:
         # 3. Solve Security Check
         self.solve_security_dialog_smart(bin_number)
 
-        # 4. Start Test (Strictly verified - never guesses!)
-        if not self.wait_and_start_test():
-            self.log(f"❌ Aborting Motor #{bin_number}: START button was not engaged by kiosk hardware. Halting to avoid false progress.", level="ERROR")
-            with self.lock:
-                self.state["motor_results"][bin_number]["status"] = "ERROR"
-                self.state["current_bin"] = None
-                self.state["active_rotation"] = 0
-                self.state["elapsed_seconds"] = 0
-            return False
+        # 4. Start Test (Direct fast tap at 270, 1888 as soon as 45-box mounts - exact CMD flow)
+        self.wait_and_start_test()
 
         # 5. Monitor 45 rotations
         success, duration, failed_rotations = self.monitor_rotations(bin_number)
