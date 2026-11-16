@@ -145,8 +145,8 @@ class SmartVendingTester:
         self.VEND_TEST_BTN = (810, 628)
         self.SECURITY_INPUT = (540, 870)
         self.SECURITY_VERIFY_BTN = (707, 1074)
-        self.TEST_START_BTN = (270, 1880)
-        self.TEST_STOP_BACK_BTN = (810, 1880)
+        self.TEST_START_BTN = (270, 1888)
+        self.TEST_STOP_BACK_BTN = (810, 1888)
 
     def _load_config(self):
         with open(self.config_path, "r", encoding="utf-8") as f:

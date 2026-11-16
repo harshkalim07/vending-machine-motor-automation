@@ -179,7 +179,9 @@ class AutomationEngine:
 
             if "clean board fault" in all_text or "bin + motor multiple" in all_text or "test bin sensor" in all_text:
                 state_name = "MACHINE_DIAGNOSTICS"
-            elif "vend motor test multiple" in all_text or "please wait" in all_text or "checking" in all_text:
+            elif "uid :" in all_text or "tray -" in all_text or "ll_uid_info_bar" in all_ids:
+                state_name = "TRAY_CATALOG"
+            elif "vend motor test multiple" in all_text or "btnstopmachinecheck" in all_ids:
                 state_name = "VEND_TEST_SCREEN"
             elif "security check" in all_text or re.search(r"what is \d+", all_text):
                 state_name = "SECURITY_DIALOG"
@@ -193,10 +195,10 @@ class AutomationEngine:
                 state_name = "OTP_SCREEN"
             elif "scan qr" in all_text or "qrcode" in all_ids:
                 state_name = "ADMIN_LOGIN_QR"
-            elif "uid :" in all_text or "tray -" in all_text or "ll_uid_info_bar" in all_ids:
-                state_name = "TRAY_CATALOG"
             elif "f & b app" in all_text or "shoonya" in all_ids or "esper" in all_text:
                 state_name = "BLUE_LAUNCHER"
+            elif "please wait" in all_text:
+                state_name = "LOADING"
             else:
                 state_name = "UNKNOWN"
 
@@ -228,12 +230,17 @@ class AutomationEngine:
                 self.log("🎉 Successfully on Machine Diagnostics screen! Ready for testing.", level="SUCCESS")
                 return True
 
+            elif state == "LOADING":
+                self.log("App loading in progress (Please Wait)... Waiting 2.0s...")
+                time.sleep(2.0)
+                continue
+
             elif state == "VEND_TEST_SCREEN":
-                self.log("Active test screen open. Tapping STOP/BACK to return to diagnostics...")
-                self.tap(810, 1830)
+                self.log("Active 45-box test screen open. Tapping STOP/BACK at (810, 1888)...")
+                self.tap(810, 1888)
                 time.sleep(1.0)
-                self.keyevent(4) # Android back fallback
-                time.sleep(1.0)
+                self.tap(810, 1888)
+                time.sleep(1.5)
 
             elif state == "SECURITY_DIALOG":
                 self.log("Security popup present. Dismissing to return...")
@@ -243,7 +250,7 @@ class AutomationEngine:
             elif state == "BLUE_LAUNCHER":
                 self.log("On Blue Launcher (Shoonya DPC). Launching Vendiman F&B App...")
                 self.run_cmd(["shell", "am", "start", "-n", "com.vendiman.foodandbeverage/.activity.SplashScreenActivity"])
-                time.sleep(3.5)
+                time.sleep(4.5)
 
             elif state == "TRAY_CATALOG":
                 self.log("On Tray-1 screen. Long-pressing UID: testsept (top-right)...")
@@ -376,29 +383,74 @@ class AutomationEngine:
         self.log("Security dialog did not appear or was auto-bypassed. Continuing...", level="WARN")
         return False
 
-    def wait_and_start_test(self, max_attempts=10):
-        """Confirms 45-box screen mounted and engages START button"""
+    def wait_and_start_test(self, max_mount_attempts=15):
+        """Confirms 45-box screen mounted, clicks START at (270, 1888), and strictly confirms test engagement."""
         self.log("Waiting for 45-box Vend Test Screen to mount...")
-        for _ in range(max_attempts):
+        mounted = False
+        for _ in range(max_mount_attempts):
             state = self.detect_screen()
             if state == "VEND_TEST_SCREEN":
+                mounted = True
                 break
             time.sleep(0.5)
 
-        time.sleep(1.0)
-        self.log("Engaging START button at (270, 1830)...")
-        for attempt in range(1, 4):
-            self.tap(270, 1830)
-            time.sleep(1.2)
+        if not mounted:
+            self.log("❌ 45-box Vend Test Screen failed to mount.", level="ERROR")
+            return False
+
+        # Allow hardware board communication to settle
+        time.sleep(1.5)
+
+        # Attempt to engage START button with pixel-perfect coordinates and dynamic verification
+        for attempt in range(1, 5):
             root = self.get_ui_xml()
+            tap_x, tap_y = 270, 1888
+            start_enabled = True
             if root is not None:
-                texts = [n.attrib.get("text", "") for n in root.iter("node")]
-                has_start = any(t.strip().upper() == "START" for t in texts)
+                for n in root.iter("node"):
+                    txt = n.attrib.get("text", "").strip().upper()
+                    r_id = n.attrib.get("resource-id", "").lower()
+                    if txt == "START" or "btnstart" in r_id:
+                        bounds = n.attrib.get("bounds", "")
+                        m = re.findall(r"\[(\d+),(\d+)\]", bounds)
+                        if len(m) == 2:
+                            x1, y1 = int(m[0][0]), int(m[0][1])
+                            x2, y2 = int(m[1][0]), int(m[1][1])
+                            tap_x, tap_y = (x1 + x2) // 2, (y1 + y2) // 2
+                        start_enabled = (n.attrib.get("enabled", "true").lower() == "true")
+                        break
+
+            if not start_enabled:
+                self.log("Waiting for kiosk board initialization (START button currently disabled)...")
+                time.sleep(2.0)
+                continue
+
+            self.log(f"Engaging START button at ({tap_x}, {tap_y}) [Attempt {attempt}/4]...")
+            self.tap(tap_x, tap_y)
+            time.sleep(1.5)
+
+            # Verification: Confirm test actually engaged on kiosk hardware
+            root_after = self.get_ui_xml()
+            if root_after is not None:
+                texts = [n.attrib.get("text", "") for n in root_after.iter("node")]
                 has_wait = any("Please Wait" in t or "Checking" in t for t in texts)
-                if has_wait or not has_start:
+                
+                start_still_clickable = False
+                for n in root_after.iter("node"):
+                    t = n.attrib.get("text", "").strip().upper()
+                    r_id = n.attrib.get("resource-id", "").lower()
+                    if t == "START" or "btnstart" in r_id:
+                        if n.attrib.get("enabled", "").lower() == "true" and n.attrib.get("clickable", "").lower() == "true":
+                            start_still_clickable = True
+
+                if has_wait or not start_still_clickable:
                     self.log("✅ Motor Test successfully engaged! Hardware spinning.", level="SUCCESS")
                     return True
-        return True
+                else:
+                    self.log(f"⚠️ START button still clickable (hardware tap not registered yet). Retrying tap...", level="WARN")
+
+        self.log("❌ START button was not registered by kiosk hardware after 4 attempts. Halting to avoid false progress.", level="ERROR")
+        return False
 
     def check_for_red_crosses(self, bin_number):
         """Inspects all 45 rotation boxes for Red Cross marks (R > 180, G < 70, B < 70)"""
@@ -468,17 +520,14 @@ class AutomationEngine:
 
     def exit_test_screen(self):
         """Returns to Machine Diagnostics screen after rotation cycle finishes"""
-        self.log("Tapping STOP/BACK to exit test screen...")
-        for _ in range(3):
-            self.tap(810, 1830)
-            time.sleep(0.8)
-            self.tap(810, 1830)
-            time.sleep(0.8)
+        self.log("Tapping STOP/BACK at (810, 1888) to exit test screen...")
+        for attempt in range(1, 5):
+            self.tap(810, 1888)
+            time.sleep(1.0)
             if self.detect_screen() == "MACHINE_DIAGNOSTICS":
                 self.log("Cleanly returned to Machine Diagnostics.", level="SUCCESS")
                 return True
-            self.keyevent(4)
-            time.sleep(1.0)
+            time.sleep(0.5)
         return self.detect_screen() == "MACHINE_DIAGNOSTICS"
 
     def execute_single_motor(self, bin_number):
@@ -510,8 +559,15 @@ class AutomationEngine:
         # 3. Solve Security Check
         self.solve_security_dialog_smart(bin_number)
 
-        # 4. Start Test
-        self.wait_and_start_test()
+        # 4. Start Test (Strictly verified - never guesses!)
+        if not self.wait_and_start_test():
+            self.log(f"❌ Aborting Motor #{bin_number}: START button was not engaged by kiosk hardware. Halting to avoid false progress.", level="ERROR")
+            with self.lock:
+                self.state["motor_results"][bin_number]["status"] = "ERROR"
+                self.state["current_bin"] = None
+                self.state["active_rotation"] = 0
+                self.state["elapsed_seconds"] = 0
+            return False
 
         # 5. Monitor 45 rotations
         success, duration, failed_rotations = self.monitor_rotations(bin_number)
