@@ -25,5 +25,9 @@ logs/
 *.xml
 *.jsonl
 
+# Allow UI showcase images for documentation & GitHub
+!docs/screenshots/*
+!assets/*
+
 # Scratch investigation tools
 tools/

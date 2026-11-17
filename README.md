@@ -32,6 +32,42 @@ Smart vending kiosks undergo rigorous endurance and QA testing before field depl
 
 ---
 
+## 🖥️ UI & Live Operator Dashboard Showcase
+
+The suite features an interactive local web control bench built with **Flask**, **Tailwind CSS**, and **Server-Sent Events (SSE)** for zero-latency monitoring and 1-click test orchestration directly from any workstation or tablet browser.
+
+### 🌙 Dark Mode & ☀️ Light Mode (Vendiman Signature Orange)
+Engineered for both low-light testing bays and high-contrast factory shop floors with persistent 1-click theme switching:
+
+| Sleek Dark Theme (Default) | Daylight White + Signature Orange |
+|:---:|:---:|
+| ![Vendiman Dark Dashboard](docs/screenshots/dashboard_dark.png) | ![Vendiman Light Dashboard](docs/screenshots/dashboard_light.png) |
+
+---
+
+### 🔍 Real-Time Telemetry & Execution Controls
+
+| Live Active Motor Telemetry Card | 1-Click Execution & Hardware Safeguards |
+|:---:|:---:|
+| ![Active Motor Telemetry](docs/screenshots/telemetry_active_dark.png) | ![Execution Controls](docs/screenshots/execution_controls_dark.png) |
+| *Real-time rotation counter (e.g., 24/45), live elapsed timer, animated rotor indicator, and batch pass/jam stats.* | *Run all 45 motors sequentially, resume from any slot, target a single motor, or park on diagnostics safely.* |
+
+---
+
+### 📦 45-Motor Visual Matrix & Live Activity Stream
+
+| 45-Motor Real-Time Tray Matrix (Trays 1 to 6) |
+|:---:|
+| ![45-Motor Visual Matrix](docs/screenshots/motor_matrix_grid.png) |
+| *Color-coded slot matrix reflecting real-time physical states: 🟢 PASS, 🟠 Spinning (Active), ⚪ Waiting, and 🔴 Jammed.* |
+
+| Live Automation Activity Stream (Sub-Second Event Bus) |
+|:---:|
+| ![Live Terminal Stream](docs/screenshots/live_terminal_stream.png) |
+| *Real-time event logging: dynamic arithmetic challenge solving (`< 10ms`), atomic screen detection, and rotation timing.* |
+
+---
+
 ## 🏗️ Architecture & State Machine
 
 The suite is engineered around **two synchronized closed-loop state machines** that probe the live Android View Hierarchy before taking action:
@@ -101,15 +137,20 @@ During spiral rotation testing, mechanical friction or motor stalls cause the ki
 vending-machine-motor-automation/
 │
 ├── 🚀 0_start_full_automation.bat  # 1-Click: Master End-to-End Runner (Tray-1 -> 45 Motors)
+├── 🖥️ Launch_Tester_App.bat        # 1-Click: Starts Flask QA Bench & launches browser
 ├── 🔍 1_find_ip.bat                # 1-Click: Scans local subnet for vending machine IP
 ├── 🔌 2_connect.bat                # 1-Click: Connects ADB over Wi-Fi
 ├── ⚙️ 3_run_motor_test.bat         # 1-Click: Motor testing only (from Diagnostics screen)
 │
+├── 🐍 app.py                       # Flask Web QA Bench server with SSE telemetry
+├── 🌐 templates/index.html         # Interactive dual-theme UI (Tailwind CSS)
+├── 🐍 automation_engine.py         # Threaded automation runner & real-time event dispatcher
 ├── 🐍 boot_to_diagnostics.py       # Autonomous login state machine (UID -> Backdoor -> OTP)
 ├── 🐍 vending_adb_automator.py     # 45-motor stress testing closed-loop engine
 ├── 🐍 connect_to_machine.py        # Wi-Fi ADB connection helper
 ├── 🐍 find_vending_box_ip.py       # Subnet scanner for ADB port 5555
 │
+├── 📁 docs/screenshots/            # High-resolution UI showcase images
 ├── 📁 logs/                        # Generated test reports (MD & JSON audit files)
 ├── 📁 platform-tools/              # Android Platform-Tools binaries (adb.exe)
 │
