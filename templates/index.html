@@ -1,109 +1,132 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vendiman Motor QA Bench</title>
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS with Dark Mode Enabled -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         @keyframes pulse-orange-ring {
             0% { transform: scale(0.97); box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.6); }
-            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(249, 115, 22, 0); }
+            70% { transform: scale(1.02); box-shadow: 0 0 0 8px rgba(249, 115, 22, 0); }
             100% { transform: scale(0.97); box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+        }
+        @keyframes spin-rotor {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         .anim-active-motor {
             animation: pulse-orange-ring 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
             border-color: #f97316 !important;
             background-color: #fff7ed !important;
         }
+        .dark .anim-active-motor {
+            background-color: rgba(124, 45, 18, 0.35) !important;
+            border-color: #ea580c !important;
+        }
+        .anim-spin-active {
+            animation: spin-rotor 1.6s linear infinite;
+        }
         /* Custom scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.03); }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen antialiased flex flex-col justify-between">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen antialiased flex flex-col justify-between transition-colors duration-300">
 
-    <!-- Top Navigation Header (White + Orange theme) -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+    <!-- Top Navigation Header -->
+    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-col md:flex-row items-center justify-between gap-4">
             
             <!-- Branding -->
             <div class="flex items-center gap-3.5">
-                <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-500 flex items-center justify-center shadow-md shadow-orange-500/20 text-white font-bold text-xl">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-500 flex items-center justify-center shadow-md shadow-orange-500/25 text-white font-black text-xl">
                     <i class="fa-solid fa-gear"></i>
                 </div>
                 <div>
                     <div class="flex items-center gap-2.5">
-                        <h1 class="text-xl font-extrabold tracking-tight text-slate-900">
+                        <h1 class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
                             Vendiman Motor QA Bench
                         </h1>
-                        <span class="text-[11px] font-bold bg-orange-100 text-orange-700 border border-orange-200 px-2.5 py-0.5 rounded-full">
-                            TESTER EDITION
+                        <span class="text-[11px] font-bold bg-orange-100 dark:bg-orange-950/80 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800 px-2.5 py-0.5 rounded-full">
+                            ORANGE EDITION
                         </span>
                     </div>
-                    <p class="text-xs text-slate-500 mt-0.5">
-                        Autonomous 45-Motor Stress Testing & Red Cross Jam Detection
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Autonomous 45-Motor Stress Testing, Red Cross Jam Detection & Screen Awareness
                     </p>
                 </div>
             </div>
 
             <!-- Global Hardware & Screen Status Bar -->
-            <div class="flex items-center gap-3 flex-wrap">
+            <div class="flex items-center gap-2.5 flex-wrap">
                 
                 <!-- ADB Device Connection Badge -->
-                <div id="deviceBadge" class="flex items-center gap-2 bg-slate-100 border border-slate-200 px-3.5 py-1.5 rounded-xl text-xs font-medium">
+                <div id="deviceBadge" class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl text-xs font-medium">
                     <span id="deviceDot" class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
-                    <span id="deviceText" class="text-slate-600 font-mono">Checking ADB...</span>
-                    <button onclick="reconnectDevice()" title="Reconnect ADB" class="text-slate-400 hover:text-orange-600 transition ml-1">
+                    <span id="deviceText" class="text-slate-600 dark:text-slate-300 font-mono">Checking ADB...</span>
+                    <button onclick="reconnectDevice()" title="Reconnect ADB" class="text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition ml-1">
                         <i class="fa-solid fa-rotate"></i>
                     </button>
                 </div>
 
                 <!-- Live Kiosk Screen Awareness Badge -->
-                <div id="screenBadge" class="flex items-center gap-2 bg-slate-100 border border-slate-200 px-3.5 py-1.5 rounded-xl text-xs font-medium">
-                    <i class="fa-solid fa-mobile-screen text-slate-500"></i>
-                    <span class="text-slate-500">Screen:</span>
-                    <span id="screenText" class="text-orange-600 font-semibold font-mono">Probing...</span>
-                    <button onclick="detectScreen()" title="Probe Current Screen" class="text-slate-400 hover:text-orange-600 transition ml-1">
+                <div id="screenBadge" class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl text-xs font-medium">
+                    <i class="fa-solid fa-mobile-screen text-slate-500 dark:text-slate-400"></i>
+                    <span class="text-slate-500 dark:text-slate-400">Screen:</span>
+                    <span id="screenText" class="text-orange-600 dark:text-orange-400 font-semibold font-mono">Probing...</span>
+                    <button onclick="detectScreen()" title="Probe Current Screen" class="text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition ml-1">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </button>
                 </div>
 
                 <!-- Sound Alert Toggle -->
-                <button id="soundToggle" onclick="toggleSound()" class="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 shadow-sm transition">
+                <button id="soundToggle" onclick="toggleSound()" class="flex items-center gap-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-sm transition">
                     <i id="soundIcon" class="fa-solid fa-volume-high text-emerald-600"></i>
                     <span id="soundText">Sound ON</span>
                 </button>
+
+                <!-- THEME TOGGLE (☀️ LIGHT / 🌙 DARK) -->
+                <button id="themeToggleBtn" onclick="toggleTheme()" class="flex items-center gap-2 bg-orange-50 dark:bg-slate-800 hover:bg-orange-100 dark:hover:bg-slate-700 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-slate-700 px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-sm transition" title="Toggle Light / Dark Mode">
+                    <span id="themeIcon">☀️</span>
+                    <span id="themeText">Light</span>
+                </button>
+
             </div>
 
         </div>
     </header>
 
     <!-- Main Content Container -->
-    <main class="max-w-7xl mx-auto px-6 py-8 space-y-8 flex-1 w-full">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8 flex-1 w-full">
 
         <!-- Critical Alert Banner (Flashes on Red Cross Jam) -->
-        <div id="alertBanner" class="hidden bg-rose-50 border-2 border-rose-500 text-rose-900 px-6 py-4 rounded-2xl flex items-center justify-between shadow-xl shadow-rose-500/10 transition">
+        <div id="alertBanner" class="hidden bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-500 text-rose-900 dark:text-rose-200 px-6 py-4 rounded-2xl flex items-center justify-between shadow-xl shadow-rose-500/10 transition">
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 rounded-xl bg-rose-600 flex items-center justify-center text-white text-2xl animate-bounce shadow-md shadow-rose-600/30">
                     <i class="fa-solid fa-triangle-exclamation"></i>
                 </div>
                 <div>
-                    <h3 class="text-base font-extrabold text-rose-950 flex items-center gap-2">
+                    <h3 class="text-base font-extrabold text-rose-950 dark:text-rose-100 flex items-center gap-2">
                         🚨 MOTOR JAM / RED CROSS DETECTED!
                     </h3>
-                    <p id="alertBannerText" class="text-sm text-rose-700 font-medium">Motor hardware fault encountered.</p>
+                    <p id="alertBannerText" class="text-sm text-rose-700 dark:text-rose-300 font-medium">Motor hardware fault encountered.</p>
                 </div>
             </div>
             <button onclick="dismissAlert()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs px-4 py-2 rounded-xl font-bold transition shadow-sm">
@@ -111,14 +134,14 @@
             </button>
         </div>
 
-        <!-- Testing Control Deck (White Cards + Orange Accents) -->
+        <!-- Testing Control Deck (White Cards in Light, Slate Cards in Dark + Signature Orange) -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
             <!-- Execution Controls (Left, 5 cols) -->
-            <div class="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+            <div class="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col justify-between transition-colors duration-300">
                 <div>
-                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-                        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                        <h2 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                             <i class="fa-solid fa-sliders text-orange-500"></i>
                             Select Execution Mode
                         </h2>
@@ -129,17 +152,17 @@
                     <div class="space-y-3 mb-6">
                         
                         <!-- Mode 1: Run All / Resume from Motor -->
-                        <label class="block p-4 rounded-xl border-2 border-orange-500 bg-orange-50/40 hover:bg-orange-50/70 cursor-pointer transition relative" id="modeAllCard">
+                        <label class="block p-4 rounded-xl border-2 border-orange-500 bg-orange-50/50 dark:bg-orange-950/20 hover:bg-orange-50/80 cursor-pointer transition relative" id="modeAllCard">
                             <div class="flex items-start gap-3">
-                                <input type="radio" name="testMode" value="all" checked onchange="updateModeUI()" class="mt-1 text-orange-600 focus:ring-orange-500">
+                                <input type="radio" name="testMode" value="all" checked onchange="updateModeUI()" class="mt-1 text-orange-600 focus:ring-orange-500 accent-orange-600">
                                 <div class="flex-1">
-                                    <span class="font-bold text-sm text-slate-900 block">Test All / Resume From Motor</span>
-                                    <span class="text-xs text-slate-500 block mt-0.5">Tests sequentially starting from this motor through to Motor #609.</span>
+                                    <span class="font-bold text-sm text-slate-900 dark:text-white block">Test All / Resume From Motor</span>
+                                    <span class="text-xs text-slate-500 dark:text-slate-400 block mt-0.5">Tests sequentially starting from this motor through to Motor #609.</span>
                                     
                                     <!-- Bin Input for Mode 1 -->
                                     <div id="allModeInput" class="mt-3 flex items-center gap-2">
-                                        <span class="text-xs font-semibold text-slate-700">Start from Motor #:</span>
-                                        <input type="number" id="startBinInput" value="100" class="w-24 bg-white border border-slate-300 rounded-lg px-3 py-1 text-sm font-bold font-mono text-center text-slate-900 focus:outline-none focus:border-orange-500 shadow-sm">
+                                        <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Start from Motor #:</span>
+                                        <input type="number" id="startBinInput" value="100" class="w-24 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1 text-sm font-bold font-mono text-center text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 shadow-sm">
                                         <span class="text-xs text-slate-400">(Default: 100)</span>
                                     </div>
                                 </div>
@@ -147,17 +170,17 @@
                         </label>
 
                         <!-- Mode 2: Test Specific Motor Only -->
-                        <label class="block p-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer transition relative" id="modeSingleCard">
+                        <label class="block p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition relative" id="modeSingleCard">
                             <div class="flex items-start gap-3">
-                                <input type="radio" name="testMode" value="single" onchange="updateModeUI()" class="mt-1 text-orange-600 focus:ring-orange-500">
+                                <input type="radio" name="testMode" value="single" onchange="updateModeUI()" class="mt-1 text-orange-600 focus:ring-orange-500 accent-orange-600">
                                 <div class="flex-1">
-                                    <span class="font-bold text-sm text-slate-900 block">Test Single Specific Motor</span>
-                                    <span class="text-xs text-slate-500 block mt-0.5">Runs a standalone 45-rotation test on this one motor only.</span>
+                                    <span class="font-bold text-sm text-slate-900 dark:text-white block">Test Single Specific Motor</span>
+                                    <span class="text-xs text-slate-500 dark:text-slate-400 block mt-0.5">Runs a standalone 45-rotation test on this one motor only.</span>
                                     
                                     <!-- Bin Input for Mode 2 -->
                                     <div id="singleModeInput" class="mt-3 flex items-center gap-2 opacity-50">
-                                        <span class="text-xs font-semibold text-slate-700">Target Motor #:</span>
-                                        <input type="number" id="singleBinInput" value="104" disabled class="w-24 bg-white border border-slate-300 rounded-lg px-3 py-1 text-sm font-bold font-mono text-center text-slate-900 focus:outline-none focus:border-orange-500 shadow-sm">
+                                        <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Target Motor #:</span>
+                                        <input type="number" id="singleBinInput" value="104" disabled class="w-24 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1 text-sm font-bold font-mono text-center text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 shadow-sm">
                                         <span class="text-xs text-slate-400">(e.g., 104, 502)</span>
                                     </div>
                                 </div>
@@ -165,12 +188,12 @@
                         </label>
 
                         <!-- Mode 3: Open Diagnostics Screen Only -->
-                        <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+                        <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
                             <div>
-                                <span class="font-bold text-xs text-slate-800 block">Open Diagnostics Screen Only</span>
-                                <span class="text-[11px] text-slate-500 block">Autonomously logs in and parks on Machine Diagnostics without spinning motors.</span>
+                                <span class="font-bold text-xs text-slate-800 dark:text-slate-200 block">Open Diagnostics Screen Only</span>
+                                <span class="text-[11px] text-slate-500 dark:text-slate-400 block">Autonomously logs in and parks on Machine Diagnostics without spinning motors.</span>
                             </div>
-                            <button onclick="startNavOnly()" id="navOnlyBtn" class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 hover:text-orange-600 text-xs font-bold px-3 py-2 rounded-lg shadow-sm transition whitespace-nowrap">
+                            <button onclick="startNavOnly()" id="navOnlyBtn" class="bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:text-orange-600 text-xs font-bold px-3 py-2 rounded-lg shadow-sm transition whitespace-nowrap">
                                 <i class="fa-solid fa-arrow-up-right-from-square mr-1 text-orange-500"></i> Open Screen
                             </button>
                         </div>
@@ -179,7 +202,7 @@
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="space-y-3 pt-4 border-t border-slate-100">
+                <div class="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                     
                     <!-- THE BIG ORANGE START BUTTON -->
                     <button id="startBtn" onclick="startAutomation()" class="w-full bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold text-base py-4 px-6 rounded-xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-3 transition transform active:scale-[0.99]">
@@ -189,19 +212,19 @@
 
                     <div class="flex items-center gap-3">
                         <!-- Request Stop Button -->
-                        <button id="stopBtn" onclick="requestStop()" class="flex-1 bg-white hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 border border-slate-300 text-slate-700 font-bold text-sm py-2.5 px-4 rounded-xl shadow-sm transition flex items-center justify-center gap-2">
+                        <button id="stopBtn" onclick="requestStop()" class="flex-1 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 dark:hover:text-rose-300 hover:border-rose-300 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm py-2.5 px-4 rounded-xl shadow-sm transition flex items-center justify-center gap-2">
                             <i class="fa-solid fa-stop text-slate-400"></i>
                             <span id="stopBtnText">Request Stop</span>
                         </button>
 
                         <!-- Reset Matrix Button -->
-                        <button onclick="resetGrid()" class="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 hover:text-orange-600 text-sm py-2.5 px-4 rounded-xl shadow-sm transition" title="Reset all motor statuses to pending">
+                        <button onclick="resetGrid()" class="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:text-orange-600 text-sm py-2.5 px-4 rounded-xl shadow-sm transition" title="Reset all motor statuses to pending">
                             <i class="fa-solid fa-rotate-right mr-1"></i> Reset
                         </button>
                     </div>
 
                     <!-- Hardware Notice -->
-                    <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 flex items-start gap-2.5">
+                    <div class="bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl p-3 text-xs text-amber-900 dark:text-amber-300 flex items-start gap-2.5">
                         <i class="fa-solid fa-circle-info text-amber-600 mt-0.5"></i>
                         <span>
                             <strong>Hardware Behavior:</strong> Kiosk firmware locks during active rotation. Clicking <em>Request Stop</em> finishes the active 45-rotation cycle safely, then returns to Diagnostics without starting subsequent motors.
@@ -212,37 +235,42 @@
             </div>
 
             <!-- Live Status & Telemetry (Right, 7 cols) -->
-            <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+            <div class="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col justify-between transition-colors duration-300">
                 <div>
-                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-                        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                        <h2 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                             <i class="fa-solid fa-chart-line text-orange-500"></i>
                             Live Test Telemetry
                         </h2>
-                        <span id="automationStatusBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                        <span id="automationStatusBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                             IDLE
                         </span>
                     </div>
 
                     <!-- Current Active Motor Highlight Box -->
-                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-6">
+                    <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 mb-6 transition-colors duration-300">
                         <div class="flex items-center justify-between mb-3">
-                            <div>
-                                <span class="text-xs uppercase tracking-wider font-semibold text-slate-400 block">Active Motor Under Test</span>
-                                <span id="telemetryActiveBin" class="text-3xl font-black font-mono text-slate-900">None</span>
+                            <div class="flex items-center gap-3.5">
+                                <div id="telemetryRotor" class="w-12 h-12 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-600 dark:text-orange-400">
+                                    <i class="fa-solid fa-compact-disc text-2xl"></i>
+                                </div>
+                                <div>
+                                    <span class="text-xs uppercase tracking-wider font-semibold text-slate-400 block">Active Motor Under Test</span>
+                                    <span id="telemetryActiveBin" class="text-3xl font-black font-mono text-slate-900 dark:text-white">None</span>
+                                </div>
                             </div>
                             <div class="text-right">
                                 <span class="text-xs uppercase tracking-wider font-semibold text-slate-400 block">Rotation Progress</span>
-                                <span id="telemetryRotationCount" class="text-2xl font-bold font-mono text-orange-600">0 / 45</span>
+                                <span id="telemetryRotationCount" class="text-2xl font-bold font-mono text-orange-600 dark:text-orange-400">0 / 45</span>
                             </div>
                         </div>
 
                         <!-- Progress Bar (Orange) -->
-                        <div class="w-full bg-slate-200 rounded-full h-3.5 overflow-hidden mb-2.5">
+                        <div class="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-3.5 overflow-hidden mb-2.5">
                             <div id="telemetryProgressBar" class="bg-gradient-to-r from-orange-500 to-amber-500 h-3.5 rounded-full transition-all duration-300 w-0"></div>
                         </div>
 
-                        <div class="flex justify-between text-xs text-slate-500 font-mono font-medium">
+                        <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400 font-mono font-medium">
                             <span id="telemetryElapsedTime">Elapsed: 0s</span>
                             <span>Target: ~258s (45 Rotations)</span>
                         </div>
@@ -250,29 +278,29 @@
 
                     <!-- Metrics Grid -->
                     <div class="grid grid-cols-4 gap-3.5 text-center">
-                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                            <span class="text-xs font-semibold text-slate-500 block">Total Motors</span>
-                            <span class="text-xl font-black font-mono text-slate-800">45</span>
+                        <div class="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+                            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Total Motors</span>
+                            <span class="text-xl font-black font-mono text-slate-800 dark:text-white">45</span>
                         </div>
-                        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
-                            <span class="text-xs font-semibold text-emerald-700 block">Passed</span>
-                            <span id="statPassed" class="text-xl font-black font-mono text-emerald-600">0</span>
+                        <div class="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3">
+                            <span class="text-xs font-semibold text-emerald-700 dark:text-emerald-400 block">Passed</span>
+                            <span id="statPassed" class="text-xl font-black font-mono text-emerald-600 dark:text-emerald-400">0</span>
                         </div>
-                        <div class="bg-rose-50 border border-rose-200 rounded-xl p-3">
-                            <span class="text-xs font-semibold text-rose-700 block">Jammed / Failed</span>
-                            <span id="statFailed" class="text-xl font-black font-mono text-rose-600">0</span>
+                        <div class="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-xl p-3">
+                            <span class="text-xs font-semibold text-rose-700 dark:text-rose-400 block">Jammed / Failed</span>
+                            <span id="statFailed" class="text-xl font-black font-mono text-rose-600 dark:text-rose-400">0</span>
                         </div>
-                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                            <span class="text-xs font-semibold text-slate-500 block">Pending</span>
-                            <span id="statPending" class="text-xl font-black font-mono text-slate-600">45</span>
+                        <div class="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+                            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Pending</span>
+                            <span id="statPending" class="text-xl font-black font-mono text-slate-600 dark:text-slate-300">45</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Legend -->
-                <div class="flex items-center justify-between text-xs text-slate-500 pt-4 border-t border-slate-100 mt-6 flex-wrap gap-2">
-                    <span class="font-bold text-slate-700">Status Legend:</span>
-                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-slate-300 inline-block"></span> Waiting</span>
+                <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-4 border-t border-slate-100 dark:border-slate-800 mt-6 flex-wrap gap-2">
+                    <span class="font-bold text-slate-700 dark:text-slate-300">Status Legend:</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700 inline-block"></span> Waiting</span>
                     <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse inline-block"></span> Spinning</span>
                     <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Passed ✅</span>
                     <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Jammed ❌</span>
@@ -281,16 +309,16 @@
         </div>
 
         <!-- 45-Motor Visual Telemetry Matrix -->
-        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <div class="flex items-center justify-between mb-6 pb-3 border-b border-slate-100">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm transition-colors duration-300">
+            <div class="flex items-center justify-between mb-6 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div>
-                    <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <h2 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <i class="fa-solid fa-boxes-stacked text-orange-500"></i>
                         45-Motor Visual Matrix
                     </h2>
-                    <p class="text-xs text-slate-500">Click any motor tile to quick-select it for testing</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Click any motor tile to quick-select it for testing</p>
                 </div>
-                <div class="text-xs font-mono font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-lg">
+                <div class="text-xs font-mono font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg">
                     Slots: 100 - 609
                 </div>
             </div>
@@ -300,66 +328,66 @@
                 
                 <!-- Tray 1 -->
                 <div>
-                    <div class="text-xs font-extrabold text-slate-600 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+                    <div class="text-xs font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2.5 flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full bg-orange-500"></span> Tray 1 (5 Motors: 100 - 104)
                     </div>
-                    <div class="grid grid-cols-5 gap-3" id="tray1Container"></div>
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3" id="tray1Container"></div>
                 </div>
 
                 <!-- Tray 2 -->
                 <div>
-                    <div class="text-xs font-extrabold text-slate-600 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+                    <div class="text-xs font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2.5 flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full bg-orange-500"></span> Tray 2 (5 Motors: 200 - 204)
                     </div>
-                    <div class="grid grid-cols-5 gap-3" id="tray2Container"></div>
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3" id="tray2Container"></div>
                 </div>
 
                 <!-- Tray 3 -->
                 <div>
-                    <div class="text-xs font-extrabold text-slate-600 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+                    <div class="text-xs font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2.5 flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full bg-orange-500"></span> Tray 3 (5 Motors: 300 - 304)
                     </div>
-                    <div class="grid grid-cols-5 gap-3" id="tray3Container"></div>
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3" id="tray3Container"></div>
                 </div>
 
                 <!-- Tray 4 -->
                 <div>
-                    <div class="text-xs font-extrabold text-slate-600 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+                    <div class="text-xs font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2.5 flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full bg-amber-500"></span> Tray 4 (10 Motors: 400 - 409)
                     </div>
-                    <div class="grid grid-cols-5 md:grid-cols-10 gap-2.5" id="tray4Container"></div>
+                    <div class="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-2.5" id="tray4Container"></div>
                 </div>
 
                 <!-- Tray 5 -->
                 <div>
-                    <div class="text-xs font-extrabold text-slate-600 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+                    <div class="text-xs font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2.5 flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full bg-amber-500"></span> Tray 5 (10 Motors: 500 - 509)
                     </div>
-                    <div class="grid grid-cols-5 md:grid-cols-10 gap-2.5" id="tray5Container"></div>
+                    <div class="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-2.5" id="tray5Container"></div>
                 </div>
 
                 <!-- Tray 6 -->
                 <div>
-                    <div class="text-xs font-extrabold text-slate-600 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+                    <div class="text-xs font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2.5 flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full bg-amber-500"></span> Tray 6 (10 Motors: 600 - 609)
                     </div>
-                    <div class="grid grid-cols-5 md:grid-cols-10 gap-2.5" id="tray6Container"></div>
+                    <div class="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-2.5" id="tray6Container"></div>
                 </div>
 
             </div>
         </div>
 
         <!-- Live Terminal / Activity Log Stream -->
-        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm transition-colors duration-300">
             <div class="flex items-center justify-between mb-3">
-                <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <h2 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-wider">
                     <i class="fa-solid fa-terminal text-orange-500"></i>
                     Live Automation Activity Stream
                 </h2>
                 <span class="text-xs font-mono text-slate-400">Terminal Output</span>
             </div>
 
-            <div id="logWindow" class="bg-slate-900 text-slate-100 rounded-xl p-4 font-mono text-xs h-60 overflow-y-auto space-y-1.5 shadow-inner">
+            <div id="logWindow" class="bg-slate-900 dark:bg-black text-slate-100 rounded-xl p-4 font-mono text-xs h-60 overflow-y-auto space-y-1.5 shadow-inner border border-slate-800">
                 <div class="text-slate-400">// Vendiman QA Bench initialized. Awaiting commands...</div>
             </div>
         </div>
@@ -367,7 +395,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+    <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-4 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors duration-300">
         Vendiman Smart Kiosk Hardware QA Bench &bull; Closed-Loop ADB State Machine Engine
     </footer>
 
@@ -385,6 +413,35 @@
         let soundEnabled = true;
         let lastAlertMessage = null;
 
+        // THEME MANAGEMENT (Light / Dark)
+        function applyTheme(theme) {
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+            const btn = document.getElementById('themeToggleBtn');
+            if (theme === 'dark') {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                if (icon) icon.innerText = '🌙';
+                if (text) text.innerText = 'Dark';
+                if (btn) btn.className = 'flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-orange-400 border border-slate-700 px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-sm transition';
+                localStorage.setItem('vendiman_theme', 'dark');
+            } else {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                if (icon) icon.innerText = '☀️';
+                if (text) text.innerText = 'Light';
+                if (btn) btn.className = 'flex items-center gap-2 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-sm transition';
+                localStorage.setItem('vendiman_theme', 'light');
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.contains('dark');
+            applyTheme(isDark ? 'light' : 'dark');
+            playWarningBeep(600, 0.05);
+        }
+
         // Initialize UI Grid Tiles
         function renderMotorGrids() {
             for (let [trayName, bins] of Object.entries(TRAY_CONFIG)) {
@@ -394,11 +451,11 @@
                 bins.forEach(bin => {
                     const tile = document.createElement('div');
                     tile.id = `motor-tile-${bin}`;
-                    tile.className = 'motor-tile bg-white border border-slate-200 hover:border-orange-400 rounded-xl p-2.5 text-center cursor-pointer transition select-none flex flex-col justify-between items-center shadow-xs';
+                    tile.className = 'motor-tile bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-orange-400 dark:hover:border-orange-500 rounded-xl p-2.5 text-center cursor-pointer transition select-none flex flex-col justify-between items-center shadow-xs';
                     tile.onclick = () => selectMotor(bin);
                     tile.innerHTML = `
-                        <div class="text-sm font-extrabold font-mono text-slate-800">#${bin}</div>
-                        <div id="badge-${bin}" class="mt-1 text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-500">Waiting</div>
+                        <div class="text-sm font-extrabold font-mono text-slate-800 dark:text-slate-100">#${bin}</div>
+                        <div id="badge-${bin}" class="mt-1 text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">Waiting</div>
                     `;
                     container.appendChild(tile);
                 });
@@ -425,15 +482,15 @@
             const startInput = document.getElementById('startBinInput');
 
             if (mode === 'all') {
-                allCard.className = 'block p-4 rounded-xl border-2 border-orange-500 bg-orange-50/40 hover:bg-orange-50/70 cursor-pointer transition relative';
-                singleCard.className = 'block p-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer transition relative';
+                allCard.className = 'block p-4 rounded-xl border-2 border-orange-500 bg-orange-50/50 dark:bg-orange-950/20 hover:bg-orange-50/80 cursor-pointer transition relative';
+                singleCard.className = 'block p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition relative';
                 allDiv.classList.remove('opacity-50');
                 startInput.disabled = false;
                 singleDiv.classList.add('opacity-50');
                 singleInput.disabled = true;
             } else {
-                allCard.className = 'block p-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer transition relative';
-                singleCard.className = 'block p-4 rounded-xl border-2 border-orange-500 bg-orange-50/40 hover:bg-orange-50/70 cursor-pointer transition relative';
+                allCard.className = 'block p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition relative';
+                singleCard.className = 'block p-4 rounded-xl border-2 border-orange-500 bg-orange-50/50 dark:bg-orange-950/20 hover:bg-orange-50/80 cursor-pointer transition relative';
                 allDiv.classList.add('opacity-50');
                 startInput.disabled = true;
                 singleDiv.classList.remove('opacity-50');
@@ -442,22 +499,21 @@
         }
 
         // Web Audio Synthesizer Beep
-        function playWarningBeep() {
+        function playWarningBeep(freq = 880, duration = 0.5) {
             if (!soundEnabled) return;
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-                osc.frequency.setValueAtTime(440, audioCtx.currentTime + 0.15);
-                osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.3);
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(freq / 2, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.5);
+                osc.stop(audioCtx.currentTime + duration);
             } catch (e) {
                 console.warn("Audio alert error:", e);
             }
@@ -470,7 +526,7 @@
             if (soundEnabled) {
                 icon.className = 'fa-solid fa-volume-high text-emerald-600';
                 text.innerText = 'Sound ON';
-                playWarningBeep();
+                playWarningBeep(880, 0.3);
             } else {
                 icon.className = 'fa-solid fa-volume-xmark text-slate-400';
                 text.innerText = 'Sound OFF';
@@ -560,11 +616,11 @@
                 if (state.connected) {
                     dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm';
                     devText.innerText = `Connected (${state.device_ip})`;
-                    devText.className = 'text-emerald-700 font-mono text-xs font-semibold';
+                    devText.className = 'text-emerald-700 dark:text-emerald-400 font-mono text-xs font-semibold';
                 } else {
                     dot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
                     devText.innerText = `Offline (${state.device_ip})`;
-                    devText.className = 'text-rose-600 font-mono text-xs';
+                    devText.className = 'text-rose-600 dark:text-rose-400 font-mono text-xs';
                 }
 
                 // Screen State Badge
@@ -575,24 +631,28 @@
                 statusBadge.innerText = state.status;
                 const startBtn = document.getElementById('startBtn');
                 const navOnlyBtn = document.getElementById('navOnlyBtn');
+                const rotor = document.getElementById('telemetryRotor');
 
                 if (state.status === 'RUNNING') {
-                    statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700 border border-orange-300 animate-pulse';
+                    statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-orange-100 dark:bg-orange-950/80 text-orange-700 dark:text-orange-400 border border-orange-300 dark:border-orange-800 animate-pulse';
                     startBtn.disabled = true;
                     startBtn.classList.add('opacity-50', 'cursor-not-allowed');
                     if (navOnlyBtn) navOnlyBtn.disabled = true;
                     document.getElementById('stopBtnText').innerText = 'Request Stop';
+                    if (rotor) rotor.classList.add('anim-spin-active');
                 } else if (state.status === 'STOP_REQUESTED') {
-                    statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-300 animate-pulse';
+                    statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800 animate-pulse';
                     startBtn.disabled = true;
                     if (navOnlyBtn) navOnlyBtn.disabled = true;
                     document.getElementById('stopBtnText').innerText = '⏳ Finishing active cycle...';
+                    if (rotor) rotor.classList.add('anim-spin-active');
                 } else {
-                    statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200';
+                    statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700';
                     startBtn.disabled = false;
                     startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                     if (navOnlyBtn) navOnlyBtn.disabled = false;
                     document.getElementById('stopBtnText').innerText = 'Request Stop';
+                    if (rotor) rotor.classList.remove('anim-spin-active');
                 }
 
                 // Active Telemetry Box
@@ -614,7 +674,7 @@
                     lastAlertMessage = state.alert;
                     document.getElementById('alertBannerText').innerText = state.alert;
                     document.getElementById('alertBanner').classList.remove('hidden');
-                    playWarningBeep();
+                    playWarningBeep(880, 0.5);
                 }
 
                 // Counters
@@ -627,7 +687,7 @@
                     const badge = document.getElementById(`badge-${bin}`);
                     if (!tile || !badge) continue;
 
-                    tile.classList.remove('anim-active-motor', 'bg-emerald-50', 'border-emerald-300', 'bg-rose-50', 'border-rose-300', 'bg-orange-50', 'border-orange-400');
+                    tile.classList.remove('anim-active-motor', 'bg-emerald-50', 'dark:bg-emerald-950/30', 'border-emerald-300', 'dark:border-emerald-800', 'bg-rose-50', 'dark:bg-rose-950/30', 'border-rose-300', 'dark:border-rose-800', 'bg-orange-50', 'dark:bg-orange-950/40', 'border-orange-400', 'dark:border-orange-500');
 
                     if (res.status === 'RUNNING' || bin === state.current_bin) {
                         tile.classList.add('anim-active-motor');
@@ -635,17 +695,17 @@
                         badge.innerText = `Rot ${state.active_rotation}/45`;
                         pending++;
                     } else if (res.status === 'PASS') {
-                        tile.classList.add('bg-emerald-50', 'border-emerald-300');
-                        badge.className = 'mt-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-200';
+                        tile.classList.add('bg-emerald-50', 'dark:bg-emerald-950/30', 'border-emerald-300', 'dark:border-emerald-800');
+                        badge.className = 'mt-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800';
                         badge.innerText = 'PASS ✅';
                         passed++;
                     } else if (res.status === 'FAIL') {
-                        tile.classList.add('bg-rose-50', 'border-rose-300');
+                        tile.classList.add('bg-rose-50', 'dark:bg-rose-950/30', 'border-rose-300', 'dark:border-rose-800');
                         badge.className = 'mt-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-600 text-white';
                         badge.innerText = res.failed_rotations && res.failed_rotations.length ? `JAM: Rot #${res.failed_rotations.join(',')}` : 'JAM ❌';
                         failed++;
                     } else {
-                        badge.className = 'mt-1 text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-500';
+                        badge.className = 'mt-1 text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400';
                         badge.innerText = 'Waiting';
                         pending++;
                     }
@@ -678,6 +738,8 @@
 
         // Initialize on page load
         window.onload = () => {
+            const savedTheme = localStorage.getItem('vendiman_theme') || 'light';
+            applyTheme(savedTheme);
             renderMotorGrids();
             updateModeUI();
             pollStatus();
