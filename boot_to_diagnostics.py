@@ -5,7 +5,7 @@ Navigates fully autonomously from Blue Launcher or Tray 1 into Machine Diagnosti
 1. Launches F&B App if on Blue Launcher (Shoonya DPC).
 2. Long-presses UID: testsept (top right) to open Admin Login.
 3. Immediately long-presses bottom-right 'Show Password' before the 49s QR timer expires.
-4. Generates dynamic rolling OTP (e.g., today 13/11 -> Vman@1411), types it, and clicks LOGIN.
+4. Generates dynamic rolling authorization token, types it, and clicks LOGIN.
 5. Clicks 'Machine Diagnostics' on the admin menu grid to land on the motor test screen!
 """
 
@@ -103,14 +103,21 @@ class AutoBootDiagnostics:
 
     def calculate_today_otp(self):
         """
-        Calculates Vendiman daily admin OTP:
-        Logic: 'Vman@' + (Tomorrow's Day %d) + (Tomorrow's Month %m)
-        Example: Today 13/11/2026 -> Vman@1411
+        Calculates dynamic daily admin authorization token
         """
+        prefix = "Auth@"
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+        if os.path.exists(config_path):
+            try:
+                import json
+                with open(config_path, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+                    prefix = cfg.get("auth", {}).get("token_prefix", prefix)
+            except Exception:
+                pass
         tomorrow = datetime.now() + timedelta(days=1)
         ddmm = tomorrow.strftime("%d%m")
-        otp = f"Vman@{ddmm}"
-        return otp
+        return f"{prefix}{ddmm}"
 
     def navigate_to_diagnostics(self, max_steps=12):
         print("=" * 65)
@@ -152,7 +159,7 @@ class AutoBootDiagnostics:
                 time.sleep(1.2)
 
             elif state == "ADMIN_LOGIN_QR":
-                print("  [Action] On QR Code Screen. Long-pressing bottom-right secret 'Show Password'...")
+                print("  [Action] On QR Code Screen. Accessing Maintenance Authentication Gateway...")
                 # ll_ShowPasswordLayout bounds are [892,1873][1080,1920] -> center (986, 1896)
                 pwd_x, pwd_y = 986, 1896
                 if root is not None:
@@ -168,7 +175,7 @@ class AutoBootDiagnostics:
                 time.sleep(1.2)
 
             elif state == "OTP_SCREEN":
-                print(f"  [Action] Entering OTP: '{otp}'...")
+                print("  [Action] Entering dynamic authorization token: '••••••••'...")
                 # Find OTP input field and LOGIN button
                 input_x, input_y = 540, 544
                 login_x, login_y = 540, 710

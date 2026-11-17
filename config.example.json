@@ -1,4 +1,7 @@
 {
+  "auth": {
+    "token_prefix": "Auth@"
+  },
   "connection": {
     "type": "wifi",
     "wifi_ip": "192.168.1.100",
