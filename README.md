@@ -11,7 +11,7 @@
 
 An enterprise-grade, **Hardware-in-the-Loop (HIL)** test automation suite designed for Android-based smart vending machine controllers. 
 
-It autonomously manages the entire testing lifecycle: from **device boot & dynamic security token authentication**, to **UI state recovery**, **arithmetic challenge solving**, **automated Red Cross jam detection**, and continuous **45-motor mechanical stress endurance testing** (2,025 continuous physical coil rotations), cutting testing time from **3.5+ hours of manual labor to 100% hands-free execution**.
+It autonomously manages the entire testing lifecycle: from **device boot & rolling master OTP authentication**, to **UI state recovery**, **arithmetic challenge solving**, **automated Red Cross jam detection**, and continuous **45-motor mechanical stress endurance testing** (2,025 continuous physical coil rotations), cutting testing time from **3.5+ hours of manual labor to 100% hands-free execution**.
 
 ---
 
@@ -21,8 +21,8 @@ Smart vending kiosks undergo rigorous endurance and QA testing before field depl
 * **The Scale**: 45 physical spiral/conveyor motors per kiosk across 6 trays.
 * **The Stress Benchmark**: Each motor must execute **45 continuous rotations** ($\approx$ 258 seconds per motor) = **2,025 rotations** per machine.
 * **The Bottleneck**: Performing this manually requires an operator to stand in front of the kiosk for **~3.5 to 4 hours**, repeating a tedious 6-step loop for every single motor:
-  1. Booting the app and authenticating into technician maintenance mode.
-  2. Calculating date-dependent rolling authorization tokens.
+  1. Booting the app and entering hidden admin backdoors.
+  2. Calculating date-dependent rolling OTP passwords.
   3. Typing 3-digit bin slot numbers (`100` to `609`).
   4. Solving arithmetic security challenges (*"What is 38 + 16?"*).
   5. Monitoring physical motor rotation countdowns.
@@ -77,9 +77,9 @@ flowchart TD
     subgraph Phase1["Phase 1: Autonomous Boot & Auth State Machine"]
         B0["Android Boot / Desktop"] -->|Detects Launcher| B1["Launch F&B App"]
         B1 --> B2["Catalog Screen: Tray-1"]
-        B2 -->|Technician Gateway Trigger| B3["Admin Login: QR Screen"]
-        B3 -->|Access Maintenance Gateway| B4["Security Verification Screen"]
-        B4 -->|Compute Dynamic Security Token| B5["Submit Token"]
+        B2 -->|Long-press UID| B3["Admin Login: QR Screen"]
+        B3 -->|Long-press Secret Backdoor| B4["OTP Verification Screen"]
+        B4 -->|Compute Rolling Master OTP| B5["Submit Password"]
         B5 --> B6["Admin Menu Grid"]
         B6 -->|Click Diagnostics| B7["Machine Diagnostics Dashboard"]
     end
@@ -115,10 +115,10 @@ Default Android window and transition animations introduce artificial latency. C
 ### 2. In-Memory Security Solver (Bypassing Slow OCR)
 When triggering a vend test, the kiosk presents a dynamic security popup (*"What is 38 + 16?"*). Instead of using slow, brittle Optical Character Recognition (OCR), the system directly inspects the accessibility node tree in memory, solves the arithmetic in `< 10ms`, and auto-submits the answer.
 
-### 3. Dynamic Time-Synchronized Authorization Engine
-The kiosk maintenance portal uses a rolling time-synchronized authentication scheme based on scheduled dates:
-$$\text{Token} = \text{Prefix} + (\text{Day} + 1)\%d + \text{Month}\%m$$
-The bootstrapper automatically computes the valid session authorization token and injects it via Android's native input event bus to bypass shell character dropping.
+### 3. Dynamic Rolling Master Password Engine
+The kiosk admin backdoor uses a daily rolling OTP algorithm based on target dates:
+$$\text{OTP} = \text{"Vman@"} + (\text{Day} + 1)\%d + \text{Month}\%m$$
+The bootstrapper automatically computes today's valid master password and injects it via Android's native `KEYCODE_AT (77)` event to bypass shell character dropping.
 
 ### 4. Non-Blocking Push Telemetry
 To allow operators to walk away during the 3.5-hour test run, push telemetry dispatches in background daemon threads via `ntfy.sh`. HTTP timeouts or network jitter never interrupt precision motor timing.
@@ -145,7 +145,7 @@ vending-machine-motor-automation/
 ├── 🐍 app.py                       # Flask Web QA Bench server with SSE telemetry
 ├── 🌐 templates/index.html         # Interactive dual-theme UI (Tailwind CSS)
 ├── 🐍 automation_engine.py         # Threaded automation runner & real-time event dispatcher
-├── 🐍 boot_to_diagnostics.py       # Autonomous login state machine (Auth Gateway -> Security Token)
+├── 🐍 boot_to_diagnostics.py       # Autonomous login state machine (UID -> Backdoor -> OTP)
 ├── 🐍 vending_adb_automator.py     # 45-motor stress testing closed-loop engine
 ├── 🐍 connect_to_machine.py        # Wi-Fi ADB connection helper
 ├── 🐍 find_vending_box_ip.py       # Subnet scanner for ADB port 5555

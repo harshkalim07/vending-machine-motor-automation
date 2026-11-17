@@ -215,11 +215,10 @@ class AutomationEngine:
         return state_name
 
     def calculate_today_otp(self):
-        """Computes dynamic time-based master authorization token"""
-        prefix = self.config.get("auth", {}).get("token_prefix", "Auth@")
+        """Computes Vendiman dynamic master password: Vman@ + (tomorrow's DDMM)"""
         tomorrow = datetime.now() + timedelta(days=1)
         ddmm = tomorrow.strftime("%d%m")
-        return f"{prefix}{ddmm}"
+        return f"Vman@{ddmm}"
 
     def auto_navigate_to_diagnostics(self, max_steps=15):
         """Autonomously navigates through any screen into Machine Diagnostics"""
@@ -261,17 +260,17 @@ class AutomationEngine:
                 time.sleep(4.5)
 
             elif state == "TRAY_CATALOG":
-                self.log("On Tray-1 screen. Engaging Admin Gateway...")
+                self.log("On Tray-1 screen. Long-pressing UID: testsept (top-right)...")
                 self.long_press(912, 28, duration_ms=2500)
                 time.sleep(1.5)
 
             elif state == "ADMIN_LOGIN_QR":
-                self.log("On Admin QR screen. Accessing Maintenance Authentication Gateway...")
+                self.log("On Admin QR screen. Long-pressing bottom-right secret backdoor...")
                 self.long_press(986, 1896, duration_ms=2500)
                 time.sleep(1.5)
 
             elif state == "OTP_SCREEN":
-                self.log("Entering dynamic rolling authorization token: '••••••••'...")
+                self.log(f"Entering dynamic rolling master OTP: '{otp}'...")
                 input_x, input_y = 540, 544
                 login_x, login_y = 540, 710
                 root = self.get_ui_xml()
