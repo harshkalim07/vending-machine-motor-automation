@@ -36,6 +36,13 @@ Smart vending kiosks undergo rigorous endurance and QA testing before field depl
 
 The suite features an interactive local web control bench built with **Flask**, **Tailwind CSS**, and **Server-Sent Events (SSE)** for zero-latency monitoring and 1-click test orchestration directly from any workstation or tablet browser.
 
+### 🎬 Hardware-in-the-Loop (HIL) Live Demo Video (38s Showcase)
+Watch the complete autonomous cycle in action: live telemetry tracking on the Desktop Web Bench, sub-second arithmetic challenge solving in `< 10ms`, and physical motor rotations synchronized on the real vending kiosk:
+
+▶️ **[Click Here to Watch / Download Full-HD Demo Video (MP4)](docs/video/vendiman_hil_linkedin_showcase.mp4)**
+
+---
+
 ### 🌙 Dark Mode & ☀️ Light Mode (Vendiman Signature Orange)
 Engineered for both low-light testing bays and high-contrast factory shop floors with persistent 1-click theme switching:
 
